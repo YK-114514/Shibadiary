@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/personal.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../http.js"></script>
+</head>
+<body>
+   
+    <div class="header">
+       
+        <a class="index" href="/index">
+        <img class="logo" src="../images/logo.png"></img>
+        <img class="title" src="../images/title.png"></img>
+        </a>
+       
+    </div>
+    
+        <div class="middle">
+            <img class="profile" src=""></img>
+            <p class="name">测试</p>
+        </div>
+        
+        <div class="content-container">
+        
+        <ul class="content">
+           
+        </ul>
+        </div>
+    
+    
+</body>
+</html>
+
+<script>
+
+    //获取个人信息session
+    const userD = sessionStorage.getItem('user_data')
+    const user_data = JSON.parse(userD)
+
+    const avatarGet = document.querySelector('.profile')
+    const nameGet = document.querySelector('.name')
+
+    nameGet.innerHTML = user_data.name
+    avatarGet.src = user_data.avatar
+
+    //获取发的帖子
+    const content = document.querySelector('.content')
+
+    let allData = []
+
+    async function getAllData(){
+        try{
+            const res = await request({
+                url:"/api/personal/personal",
+                method:'get'
+            })
+            allData = res.data
+            return allData;   
+
+        }catch(error){
+            console.log(error)
+            return[]
+        }
+    }
+    getAllData().then((allTable)=>{
+        console.log(allTable)
+
+    })
+
+    async function getPersonal(){
+        
+        const post_Datas = await getAllData()
+        //console.log('alldata',post_Datas)
+       
+        //let post_Datas = []
+        for(let i in post_Datas){
+
+          if(post_Datas.length == 0){
+            content.innerHTML = '什么也没有哦'
+          }else{
+                const formatted = new Date(post_Datas[i].time).toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                    });
+
+        
+        
+            post_Datas.push(allData)
+            //const content = document.querySelector('.content-next');
+        const li = document.createElement(`li`)
+        content.prepend(li)
+       
+        li.innerHTML = `
+        <div class="mulu-top">
+        <div class="mulu">
+        <image class="avatar" src=${post_Datas[i].avatar}></image>
+                
+                        <div class="list">
+                        <div class="divide_row">
+                            <a href="javascript:;" class="uname">${post_Datas[i].name}</a>
+                            
+                              </div>
+                             <div class="information">
+                      
+             
+                
+                </div>
+                            <p class="sentences">${post_Datas[i].content}</p>
+                            <div class="pictures">
+                            
+                            </div>
+                            <div class="last">
+                                <p class="time">${formatted}</p>
+                                <div class="others">
+                                    <a href="javascript:;" class="like" data-id="${i}">❤0</a>
+                                    <a href="javascript:;" class="collect" data-id="${i}">⭐Collects</a>
+                                    <a href='javascript:;' class="say" data-id="${i}">🖊Comments</a>
+    
+                                    
+                                </div>
+                            </div>
+                        
+                            
+                        </div>
+                        
+                            
+                        
+        </div>
+                   
+            </div>
+           
+        `
+          }
+
+        }
+    
+
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+    getPersonal();
+    });
+
+    // 新增：渲染评论的分页函数
+    function renderCommentsWithPagination(comments, commentContainer, page = 1, pageSize = 10) {
+        commentContainer.innerHTML = ""; // 清空
+        const total = comments.length;
+        const totalPages = Math.ceil(total / pageSize);
+        const start = (page - 1) * pageSize;
+        const end = Math.min(start + pageSize, total);
+
+        // 渲染当前页的评论
+        for (let i = start; i < end; i++) {
+            const c = comments[i];
+            const liComment = document.createElement('li');
+            liComment.innerHTML = `
+                <div class="xijie">
+                    <img class="avatar1" src="${c.avatar}">
+                    <div class="exceptA">
+                        <div class='author-container'>
+                            <a href="javascript:;" class="name">${c.name}</a>
+                        </div>
+                        <div class="information"></div>
+                        <p class="words">${c.content}</p>
+                        <div class="timesLike">
+                            <p class="ctime">${c.time}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="reply-container"></div>
+            `;
+            commentContainer.appendChild(liComment);
+        }
+
+        // 分页按钮
+        if (totalPages > 1) {
+            const paginationDiv = document.createElement('div');
+            paginationDiv.className = "comment-pagination";
+            paginationDiv.style = "text-align:center;margin:10px 0;";
+            paginationDiv.innerHTML = `
+                <button ${page === 1 ? "disabled" : ""} class="comment-prev">上一页</button>
+                <span style="margin:0 8px;">${page} / ${totalPages}</span>
+                <button ${page === totalPages ? "disabled" : ""} class="comment-next">下一页</button>
+            `;
+            commentContainer.appendChild(paginationDiv);
+
+            // 事件
+            paginationDiv.querySelector('.comment-prev').onclick = () => renderCommentsWithPagination(comments, commentContainer, page - 1, pageSize);
+            paginationDiv.querySelector('.comment-next').onclick = () => renderCommentsWithPagination(comments, commentContainer, page + 1, pageSize);
+        }
+    }
+
+    getComments().then((allC) => {
+        if (allC.length === 0) {
+            commentRemen.innerHTML = `抢个沙发吧`;
+        } else {
+            renderCommentsWithPagination(allC, commentRemen, 1, 10);
+        }
+    });
+
+</script>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/accounts.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../http.js"></script>
+    
+</head>
+<body>
+   
+    <div class="header">
+       
+        <a class="index" href="/index">
+        <img class="logo" src="../images/logo.png"></img>
+        <img class="title" src="../images/title.png"></img>
+        </a>
+       
+    </div>
+    
+        <div class="middle">
+            <img class="profile" src=""></img>
+            <p class="name">测试</p>
+        </div>
+        
+        <div class="content-container">
+        
+        <ul class="content">
+           
+        </ul>
+        </div>
+    
+    
+</body>
+</html>
+
+<script>
+
+
+
+const avatarGet = document.querySelector('.profile')
+const nameGet = document.querySelector('.name')
+const params = new URLSearchParams(window.location.search)
+const userId = params.get('id')
+
+
+
+console.log(userId)
+
+
+
+    
+
+    //获取发的帖子
+    const content = document.querySelector('.content')
+
+    let allData = []
+
+    async function getAllData(){
+        try{
+           
+          const res = await axios.get(`/api/accounts/${userId}/accounts`)
+            allData = res.data
+            console.log(allData)
+
+            //设置头像和名字
+            nameGet.innerHTML = allData[0].name
+            avatarGet.src = allData[0].avatar
+
+            return allData;   
+
+        }catch(error){
+            console.log(error)
+            return[]
+        }
+    }
+    getAllData().then((allTable)=>{
+        console.log(allTable)
+
+    })
+
+    async function getAccounts(){
+        
+        const post_Datas = await getAllData()
+        //console.log('alldata',post_Datas)
+       
+        //let post_Datas = []
+        for(let i in post_Datas){
+
+          if(post_Datas.length == 0){
+            content.innerHTML = '什么也没有哦'
+          }else{
+                const formatted = new Date(post_Datas[i].time).toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                    });
+
+        
+        
+            post_Datas.push(allData)
+            //const content = document.querySelector('.content-next');
+        const li = document.createElement(`li`)
+        content.prepend(li)
+       
+        li.innerHTML = `
+        <div class="mulu-top">
+        <div class="mulu">
+        <image class="avatar" src=${post_Datas[i].avatar}></image>
+                
+                        <div class="list">
+                        <div class="divide_row">
+                            <a href="javascript:;" class="uname">${post_Datas[i].name}</a>
+                            
+                              </div>
+                             <div class="information">
+                      
+             
+                
+                </div>
+                            <p class="sentences">${post_Datas[i].content}</p>
+                            <div class="pictures">
+                            
+                            </div>
+                            <div class="last">
+                                <p class="time">${formatted}</p>
+                                <div class="others">
+                                    <a href="javascript:;" class="like" data-id="${i}">❤0</a>
+                                    <a href="javascript:;" class="collect" data-id="${i}">⭐Collects</a>
+                                    <a href='javascript:;' class="say" data-id="${i}">🖊Comments</a>
+    
+                                    
+                                </div>
+                            </div>
+                        
+                            
+                        </div>
+                        
+                            
+                        
+        </div>
+                   
+            </div>
+           
+        `
+          }
+
+        }
+    
+
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+    getAccounts();
+    });
+
+
+
+
+</script>

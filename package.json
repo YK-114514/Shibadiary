@@ -1,0 +1,30 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "server": "node app.js"
+  },
+  "author": "fyk",
+  "license": "ISC",
+  "keywords": [],
+  "description": "",
+  "dependencies": {
+    "ajax": "^0.0.4",
+    "axios": "^1.8.4",
+    "bcrypt": "^5.1.1",
+    "bootstrap": "^5.3.5",
+    "bootstrap-icons": "^1.11.3",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "jwt-decode": "^4.0.0",
+    "multer": "^2.0.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

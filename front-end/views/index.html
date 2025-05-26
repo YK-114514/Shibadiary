@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="stylesheet" href="../css/index.css">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script src="../http.js"></script>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    </head>
+<body>
+    <!--header-->
+<div class="father">
+    
+    <div class='header'>
+       <div class="header-next">
+            <image class="logo" src="../images/logo.png"></image>
+            <image class="title" src="../images/title.png"></image>
+            <ul class="topics">
+                <li >
+                    <a href="/index" class="active" data-id="1">讨论小柴</a>
+                </li>
+                <li>
+                    <a data-id="2" >我的小柴</a>
+                </li>
+                <li >
+                    <a data-id="3">小柴手册</a>
+                </li>
+            </ul>
+          <div class="login-header">
+            <a href="/login" class="before-login">登录</a>
+            <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#userInfo" style="display:none">
+                欢迎，
+            </button>
+            <div class="collapse mt-3" id="userInfoShowing" style="display:none">
+                <a href="/personal" class="card card-body" id="personal">
+                    个人信息
+                </a>
+                <a href="javascript:;" class="card card-body" id="logout">
+                    退出登录
+                </a>
+              </div>
+           </div>
+           
+        </div>
+
+</div>
+
+<div class="content">
+    <div class="sort-dropdown">
+        <button class="sort-toggle">
+            
+            <span class="arrow">&#9660;</span>
+        </button>
+        <div class="two_type" style="display: none;">
+            <a href="javascript:;" id="likeDesc" class="active">最热</a>
+            <a href="javascript:;" id="timeDesc">最新</a>
+        </div>
+    </div>
+    <ul class="content-next">
+    </ul>
+    <!-- 添加分页组件 -->
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item">
+                <a class="page-link" href="javascript:;" id="prevPage" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <span class="page-link" id="currentPageInfo">第 1 页 / 共 1 页</span>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="javascript:;" id="nextPage" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+
+<!--左侧菜单栏-->
+
+<div class="next">
+    <div class="menu">
+        <div class="menu-next">
+            <ul class="part">
+               
+                    <a href="javascript:;" onclick="navigate('post')" class="active" data-id="1">Posts</a>
+                
+              
+                    <a href="javascript:;" onclick="navigate('ask')" data-id="2">Questions</a>
+               
+                    <a href="javascript:;" onclick="navigate('friends')" data-id="3">Friends</a>
+                
+                    <a href="javascript:;" onclick="navigate('collect')" data-id="4">Collects</a>
+               
+
+            </ul>
+        </div>
+        <!-- 添加内容按钮 -->
+
+    <img class='adding' src="../images/add.png" alt="添加" onclick="showAdding()">
+
+
+<!-- 添加内容弹窗 -->
+<div class="adding_content" style="display:none">
+    <div class="top_new">
+        <h3 class="title">添加内容</h3>
+        <a href="javascript:;" class="out" onclick="closeAdding()">×</a>
+    </div>
+    <form id="contentForm" class="row g-3 needs-validation" novalidate enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="contentType" class="form-label">类型</label>
+            <select class="form-control" id="contentType" required>
+                <option value="帖子">帖子</option>
+                <option value="问答">问答</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="content" class="form-label">内容</label>
+            <textarea class="form-control" id="content" rows="3" required></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">图片（最多9张）</label>
+            <div class="image-upload-area" id="imageUploadArea">
+                <input type="file" id="imageInput" accept="image/*" multiple style="display:none">
+                <div class="image-grid" id="imageGrid">
+                    <div class="add-image-btn" id="addImageBtn">+</div>
+                </div>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-secondary">发布</button>
+    </form>
+</div>
+<div class="alert alert-success" role="alert" style="display:none">
+    发布成功
+</div>
+<div class="alert alert-danger" role="alert" style="display:none">
+    发布失败！
+</div>
+
+    </div>
+</body>
+    <script >
+        const userD = sessionStorage.getItem('user_data');
+        let userData = null;
+        try {
+            userData = userD ? JSON.parse(userD) : null;
+        } catch (e) {
+            console.error('解析用户数据失败:', e);
+        }
+        //登录前后
+        const logining = document.querySelector('.login-header .before-login')
+        const showing = document.querySelector('.btn-primary')
+        const showing_content = document.getElementById('userInfoShowing')
+        const logout_click = document.getElementById('logout')
+        const addingImg = document.querySelector('.adding')
+        const forms = document.querySelectorAll('.needs-validation');
+        const danger = document.querySelector('.alert-danger');
+        const success_alert = document.querySelector('.alert-success');
+
+        let isShow = false;
+        if(!localStorage.getItem('eleToken') || !userData){
+            logining.style.display = 'block'
+            showing.style.display = 'none'
+            showing_content.style.display = 'none'
+        }else{
+            logining.style.display = 'none'
+            showing.style.display = 'block'
+            showing.innerHTML = `欢迎，${userData.name}`
+
+            //点击显示
+            showing.addEventListener('click',()=>{
+                if(!isShow){
+                    isShow = true;
+                    showing_content.style.display = 'block'
+                }else{
+                    isShow = false;
+                    showing_content.style.display = 'none'
+                }
+            })
+
+            //退出登录
+            logout_click.addEventListener('click',()=>{
+                localStorage.removeItem('eleToken');
+                sessionStorage.clear();
+                // 更新显示状态
+                logining.style.display = 'block';
+                showing.style.display = 'none';
+                showing_content.style.display = 'none';
+                isShow = false;
+            })
+
+            
+        }
+
+        //adding是否显示
+        if(localStorage.getItem('eleToken')){
+            addingImg.style.display='block'
+        }else{
+            addingImg.style.display='none'
+        }
+         //loadcontent 设置
+         async function loadContent(page) {
+            const content = document.querySelector('.content-next');
+            
+
+            try {
+                switch(page) {
+                    case 'post':
+                        content.innerHTML = ""
+                        await getPosts('like');
+                        break;
+                    case 'ask':
+                        content.innerHTML = ""
+                        await getAsk();
+                        break;
+                    case 'friend':
+                        content.innerHTML = ''
+                        content.innerHTML = '<h2>好友列表</h2><p>添加小伙伴～</p>';
+                        break;
+                    case 'collect':
+                        content.innerHTML = ''
+                        await getCollect()
+                        break;
+                   
+                }
+            } catch (error) {
+                console.error('加载内容失败:', error);
+                content.innerHTML = '<div class="error">加载失败，请稍后重试</div>';
+            }
+        }
+
+        //切换地址栏
+        function navigate(page) {
+            // 修改地址栏URL，但不会刷新页面
+            history.pushState({}, '', `/index/${page}`);
+            // 更新导航栏active状态
+             updateNavigation(page);
+
+            // 根据page更新内容
+            loadContent(page);
+        }
+
+       
+
+        //获取全部资料先
+        
+        let allData = []; // 存储所有数据
+       async function getAllData(){
+        try {
+            const res = await axios.get('/api/posts/index');
+            allData = res.data; // 保存数据到全局变量
+            return res.data;  // 返回真正的数据！
+        } catch (error) {
+            console.error('获取数据失败:', error);
+            return []; // 失败时返回空数组
+        }
+       
+       }
+       getAllData().then((allTable)=>{
+        console.log(allTable)
+       })
+
+       //按照点赞热度来排序
+       let allDataLikeDesc = []
+       async function getLikeDesc(){
+        try{
+            const res = await axios.get('/api/posts/indexLike')
+            allDataLikeDesc = res.data
+            return allDataLikeDesc
+        }catch(error){
+            console.log(error)
+            return []
+        }
+       }
+
+       //收藏
+       let allCollect = []
+
+    async function getCollectData(){
+        try{
+            const res = await axios.get('/api/posts/collect')
+            allCollect = res.data
+            
+            return(allCollect)
+        }catch(error){
+            console.log(error.message)
+            return []
+        }
+
+    }
+    getCollectData().then(allC=>console.log(allC))
+
+    //首先看是否是按热度/按点赞
+
+    const likeDesc = document.getElementById('likeDesc')
+    const timeDesc = document.getElementById('timeDesc')
+    const content = document.querySelector('.content-next')
+
+    
+      
+      
+
+       //然后我们获取热门贴
+       async function getPosts(sortBy){
+
+        //首先看是否是按热度/按点赞
+
+       
+        let post_Datas = []
+
+        if (sortBy === 'like') {
+            post_Datas = await getLikeDesc()  
+            console.log(sortBy) // 根据点赞数排序的帖子
+        } else {
+            post_Datas = await getAllData()  
+            console.log(sortBy)  // 根据时间排序的帖子
+        }
+    
+
+        /*likeDesc.addEventListener('click',()=>{
+            if(!likeDesc.classList.contains('active')){
+                likeDesc.classList.add('active')
+                timeDesc.classList.remove('active')
+            }
+        })
+
+        timeDesc.addEventListener('click',()=>{
+            if(!timeDesc.classList.contains('active')){
+                timeDesc.classList.add('active')
+                likeDesc.classList.remove('active')
+            }
+        })
+        
+
+        if(likeDesc.classList.contains('active')){
+            post_Datas = await getLikeDesc()
+        }else{
+
+            post_Datas = await getAllData()
+
+        }*/
+
+        content.innerHTML=""
+        
+       
+    
+        console.log('alldata',post_Datas)
+       
+        //let post_Datas = []
+        for(let i in post_Datas){
+
+            if(post_Datas[i].type == '帖子'){
+                const formatted = new Date(post_Datas[i].time).toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                    });
+
+                // 判断是否为贴主
+                let deleteBtnHtml = '';
+                if (userData && post_Datas[i].id_user == userData.id_user) {
+                    deleteBtnHtml = `<button class="btn btn-link btn-sm delete-post-btn" data-id="${post_Datas[i].id}" style="position:absolute;top:8px;right:8px;z-index:10;"><i class="bi bi-trash" style="font-size:20px;color:#e74c3c;"></i></button>`;
+                }
+
+                // 假设 post_Datas[i].images 是 JSON 字符串
+                let imagesArr = [];
+                try {
+                    imagesArr = post_Datas[i].images ? JSON.parse(post_Datas[i].images) : [];
+                } catch(e) {
+                    imagesArr = [];
+                }
+
+                let picturesHtml = '';
+                if (imagesArr.length > 0) {
+                    picturesHtml = `<div class="pictures">` +
+                        imagesArr.map(img => `<img src="${img}" class="post-image" loading="lazy">`).join('') +
+                        `</div>`;
+                }
+
+        
+        
+            post_Datas.push(allData)
+            //const content = document.querySelector('.content-next');
+        const li = document.createElement(`li`)
+        content.appendChild(li)
+       
+        li.innerHTML = `
+        <div class="mulu-top" style="position:relative;">
+        ${deleteBtnHtml}
+        <div class="mulu">
+        <image class="avatar" src=${post_Datas[i].avatar}></image>
+                
+                        <div class="list">
+                        <div class="divide_row">
+                            <a href="javascript:;" class="uname">${post_Datas[i].name}</a>
+                            
+                              </div>
+                             
+                             
+                            <p class="sentences">${post_Datas[i].content}</p>
+                            ${picturesHtml}
+                            <div class="last">
+                                <p class="time">${formatted}</p>
+                                <div class="others">
+                                    <a href="javascript:;" class="like" data-id="${post_Datas[i].id}">❤ 0</a>
+                                    <a href="javascript:;" class="collect" data-id="${post_Datas[i].id}">⭐ 收藏</a>
+                                    <a href='javascript:;' class="say" data-id="${post_Datas[i].id}">🖊 评论</a>
+    
+                                    
+                                </div>
+                            </div>
+                        
+                            
+                        </div>
+                        
+                            
+                        
+        </div>
+         <div class="comments hidden" data-id="${post_Datas[i].id}">
+                    <div class="inputComment">
+                     <textarea id="my" placeholder="说点什么吧..." maxlength="200"></textarea>
+                     <button class="submitComment">发送</button>
+                     </div>
+                     <div class="otherComments">
+                    
+                     </div>
+                    
+                                      
+    
+                    </div>
+                   
+            </div>
+           
+        `
+         //评论区
+         async function getComments(){
+            try {
+                    const res = await axios.get(`/api/posts/${post_Datas[i].id}/comments`);
+                    allComments = res.data; // 保存数据到全局变量
+                    return res.data;  // 返回真正的数据！
+                } catch (error) {
+                    console.error('获取数据失败:', error);
+                    return []; // 失败时返回空数组
+                }
+        }
+
+        getComments().then((allC)=>{
+            console.log(allC)
+        })
+    
+
+        //设置评论区
+
+        const commentValueRemen = li.querySelector(`.comments textarea`)
+        const commentSubmitRemen = li.querySelector(`.comments .submitComment`)
+        const showComments = await getComments()
+        let commentRemen = li.querySelector(`.otherComments`)
+
+         //首先，如果eletoken没有的话，我们不能发表评论
+         if(!localStorage.getItem('eleToken')){
+                commentValueRemen.placeholder = '请先登录'
+                commentSubmitRemen.disabled = true
+         }
+        if(showComments.length == 0){
+            commentRemen.innerHTML = `抢个沙发吧`
+            
+        }else{
+            for(let n in showComments){
+            const liComment = document.createElement('li')
+            commentRemen.appendChild(liComment)
+            liComment.innerHTML = `
+            
+                    <div class="xijie">
+                        <image class="avatar1" src=${showComments[n].avatar}></image>
+                            <div class="exceptA">
+                            <div class='author-container'>
+                                <a href="javascript:;" class="name">${showComments[n].name}</a>
+                                   
+                                </div>
+                                  <div class="information">
+                                </div>
+                                <p class="words" >${showComments[n].content}</p>
+                                <div class="timesLike">
+                                    <p class="ctime">${showComments[n].time}</p>
+                                </div>
+                            </div>
+                          
+                    </div>
+                     <div class="reply-container">
+
+                        </div>
+                    
+                      
+                    `
+            }
+        }
+          //评论区
+        document.querySelector('.content-next').addEventListener('click', function(e) {
+            // 评论按钮
+            if (e.target.classList.contains('say')) {
+                const postId = e.target.dataset.id;
+                const muluTop = e.target.closest('.mulu-top');
+                if (muluTop) {
+                    const cmt = muluTop.querySelector(`.comments[data-id=\"${postId}\"]`);
+                    if (cmt) {
+                        cmt.classList.toggle('hidden');
+                    }
+                }
+            }
+            // 用户名
+            if (e.target.classList.contains('uname')) {
+                const muluTop = e.target.closest('.mulu-top');
+                const postId = muluTop.querySelector('.say').dataset.id;
+                const post = post_Datas.find(p => p.id == postId);
+                if (post) {
+                    if (userData && post.id_user == userData.id_user) {
+                        window.location.href = '/personal';
+                    } else {
+                        window.location.href = `/accounts?id=${post.id_user}`;
+                    }
+                }
+            }
+            // 删除按钮
+            if (e.target.closest('.delete-post-btn')) {
+                const btn = e.target.closest('.delete-post-btn');
+                const postId = btn.dataset.id;
+                if (window.confirm('确定要删除这条帖子吗？')) {
+                    axios.delete(`/api/posts/${postId}`)
+                        .then(res => {
+                            alert('删除成功');
+                            window.location.reload();
+                        })
+                        .catch(err => {
+                            alert('删除失败');
+                        });
+                }
+            }
+        });
+
+    //发布评论
+   
+        commentSubmitRemen.addEventListener('click', async function() {
+    const content = commentValueRemen.value.trim()  // 获取评论内容
+
+    if (!content) {
+        alert('评论内容不能为空')
+        return
+    }
+
+    // 准备评论数据
+    const commentData = {
+        name: userData.name,
+        avatar: userData.avatar,
+        content: content,
+        id_user: userData.id_user,
+        id_from_post: post_Datas[i].id
+    }
+
+    try {
+        // 发送POST请求
+        const res = await axios.post(`/api/posts/comments`, commentData)
+
+        if (res.data && res.data.success) {
+            success_alert.style.display = 'block';
+                setTimeout(()=>{
+                    success_alert.style.display = 'none';
+                },5000);
+            // 可以在这里把新评论直接插入到评论区（不用刷新页面）
+            const liComment = document.createElement('li')
+            commentRemen.appendChild(liComment)
+            liComment.innerHTML = `
+                <div class="xijie">
+                    <img class="avatar1" src="${userData.avatar}">
+                    <div class="exceptA">
+                        <div class='author-container'>
+                            <a href="javascript:;" class="name">${userData.name}</a>
+                            
+                        </div>
+                        <div class="information"></div>
+                        <p class="words">${content}</p>
+                        <div class="timesLike">
+                            <p class="ctime">刚刚</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="reply-container"></div>
+            `
+            commentValueRemen.value = ''  // 清空输入框
+        } else {
+            danger.textContent = '评论失败';
+            danger.style.display = 'block';
+            setTimeout(()=>{
+                danger.style.display = 'none';
+            },5000);
+            return;
+        }
+    } catch (error) {
+        console.error('评论提交失败:', error)
+        alert('服务器错误，稍后再试')
+    }
+})
+
+    //收藏
+    const collectIcon = li.querySelector('.collect')
+    collectIcon.addEventListener('click', async()=>{
+        collectIcon.classList.toggle('active')
+       try{ const res = await axios.post('/api/posts/addCollect',{
+            userid_collect:userData.id_user,
+            id_from_post:post_Datas[i].id
+        })
+      
+               
+            if(res.data) {
+                //显示成功
+                success_alert.style.display = 'block';
+                success_alert.textContent = '操作成功'
+                setTimeout(()=>{
+                    success_alert.style.display = 'none';
+                },5000);
+               
+            }
+
+        
+    }catch(error){
+        console.error('收藏失败:', error);
+            danger.textContent = error.response?.data || error.message || '收藏失败，请重试';
+            danger.style.display = 'block';
+            setTimeout(()=>{
+                danger.style.display = 'none';
+            },5000);
+
+    }
+        
+    })
+
+    //表示出是否收藏
+    const collectPost = await getCollectData()
+    if(userData){
+    for(let m in collectPost){
+        if(collectPost[m].id_from_post == post_Datas[i].id){
+            console.log('test',post_Datas[i].id)
+            collectIcon.classList.add('active')
+
+
+        }
+    }
+}
+
+    //点赞
+    const likeIcon = li.querySelector('.like')
+    likeIcon.addEventListener('click',async()=>{
+        let likeCount = parseInt(likeIcon.innerText.slice(1)) 
+        //console.log('点赞')
+        if (likeIcon.classList.contains('active')) {
+            likeCount -= 1
+            likeIcon.innerHTML = `❤${likeCount}`
+        } else {
+            likeCount += 1
+            likeIcon.innerHTML = `❤${likeCount}`
+        }
+        likeIcon.classList.toggle('active')
+       
+
+        try{
+            const res = await axios.post('/api/posts/addLike',{
+            userid_like:userData.id_user,
+            id_from_post:post_Datas[i].id
+        })
+        
+               
+            if(res.data) {
+                //显示成功
+                success_alert.style.display = 'block';
+                success_alert.textContent = '操作成功'
+                setTimeout(()=>{
+                    success_alert.style.display = 'none';
+                },5000);
+               
+            }
+
+        
+
+
+        }catch(error){
+            console.error('操作失败:', error);
+            danger.textContent = error.response?.data || error.message || '操作失败，请重试';
+            danger.style.display = 'block';
+            setTimeout(()=>{
+                danger.style.display = 'none';
+            },5000);
+
+        }
+
+    })
+
+    //显示点赞
+    let allLike = []
+    async function getLikeData(){
+        try{
+            const res = await axios.get(`/api/posts/like/${post_Datas[i].id}`)
+            allLike = res.data
+            return allLike
+        }catch(error){
+            console.log(error)
+            return []
+
+        }
+    }
+    if(userData){
+    const likeData = await getLikeData()
+    console.log(likeData)
+    likeIcon.innerHTML = `❤${likeData.likeCount}`
+    for(let p in likeData.userIdLike){
+        if(likeData.userIdLike[p] == userData.id_user){
+            likeIcon.classList.add('active')
+        }
+    }
+}
+
+      
+    
+
+
+
+
+   
+   
+
+
+
+        }
+
+    }
+
+    }
+    // 点击按热度排序
+    likeDesc.addEventListener('click', () => {
+        if (!likeDesc.classList.contains('active')) {
+            likeDesc.classList.add('active')
+            timeDesc.classList.remove('active')
+            getPosts('like')  // 刷新为按点赞数
+        }
+    })
+
+    // 点击按时间排序
+    timeDesc.addEventListener('click', () => {
+        if (!timeDesc.classList.contains('active')) {
+            timeDesc.classList.add('active')
+            likeDesc.classList.remove('active')
+            getPosts('time')  // 刷新为按时间
+        }
+    })
+
+
+ 
+
+     //然后我们获取问答贴
+     async function getAsk(){
+        
+        const ask_Datas = await getAllData()
+        console.log('alldata',ask_Datas)
+       
+        //let post_Datas = []
+        for(let i in ask_Datas){
+
+            if(ask_Datas[i].type == '问答'){
+                const formatted = new Date(ask_Datas[i].time).toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                    });
+
+        
+        
+            ask_Datas.push(allData)
+            const content = document.querySelector('.content-next');
+        const li = document.createElement(`li`)
+        content.appendChild(li)
+       
+        li.innerHTML = `
+        <div class="mulu-top">
+        <div class="mulu">
+        <image class="avatar" src=${ask_Datas[i].avatar}></image>
+                
+                        <div class="list">
+                        <div class="divide_row">
+                            <a href="javascript:;" class="uname">${ask_Datas[i].name}</a>
+                            
+                              </div>
+                             <div class="information">
+                      
+                <div class="divide">
+                <image class="touxiang" src=${ask_Datas[i].avatar}></image>
+                <p class="name">${ask_Datas[i].name}</p>
+                <i class="bi bi-trash" style = "display:none"></i>
+                </div>
+               
+                
+                </div>
+                            <p class="sentences">${ask_Datas[i].content}</p>
+                            <div class="pictures">
+                            
+                            </div>
+                            <div class="last">
+                                <p class="time">${formatted}</p>
+                                <div class="others">
+                                    <a href="javascript:;" class="like" data-id="${i}">❤0</a>
+                                    <a href="javascript:;" class="collect" data-id="${i}">⭐Collects</a>
+                                    <a href='javascript:;' class="say" data-id="${i}">🖊Comments</a>
+    
+                                    
+                                </div>
+                            </div>
+                        
+                            
+                        </div>
+                        
+                            
+                        
+        </div>
+                   
+            </div>
+           
+        `
+
+        }
+    }
+
+    }
+
+    
+
+    async function getCollect(){
+        const content = document.querySelector('.content-next');
+        const collectData = await getCollectData()
+        const allDataCollect = await getAllData()
+        console.log(collectData)
+        if(!localStorage.getItem('eleToken')){
+            content.innerHTML = '请先登录'
+        }else{
+        if(collectData.length == 0){
+            content.innerHTML = '暂无收藏'
+        }else{
+        for(let i in collectData){
+            if(collectData[i].userid_collect == userData.id_user){
+               
+                console.log('this is post infom',allDataCollect.find(item=>item.id==collectData[i].id_from_post))
+                const tempObj = allDataCollect.find(item=>item.id == collectData[i].id_from_post )
+                const formatted = new Date(tempObj.time).toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                    });
+
+                
+                const li = document.createElement(`li`)
+                content.appendChild(li)
+            
+                li.innerHTML = `
+                <div class="mulu-top">
+                <div class="mulu">
+                <image class="avatar" src=${tempObj.avatar}></image>
+                        
+                                <div class="list">
+                                <div class="divide_row">
+                                    <a href="javascript:;" class="uname">${tempObj.name}</a>
+                                    
+                                    </div>
+                                    
+                                    
+                                    <p class="sentences">${tempObj.content}</p>
+                                    <div class="pictures">
+                                    
+                                    </div>
+                                    <div class="last">
+                                        <p class="time">${formatted}</p>
+                                        <div class="others">
+                                            <a href="javascript:;" class="like" data-id="${tempObj.id}">❤0</a>
+                                            <a href="javascript:;" class="collect" data-id="${tempObj.id}">⭐Collects</a>
+                                            <a href='javascript:;' class="say" data-id="${tempObj.id}">🖊Comments</a>
+            
+                                            
+                                        </div>
+                                    </div>
+                                
+                                    
+                                </div>
+                                
+                                    
+                                
+                </div>
+                <div class="comments hidden" data-id="${tempObj.id}">
+                            <div class="inputComment">
+                            <textarea id="my" placeholder="说点什么吧..." maxlength="200"></textarea>
+                            <button class="submitComment">发送</button>
+                            </div>
+                            <div class="otherComments">
+                            
+                            </div>
+                            
+                                            
+            
+                            </div>
+                        
+                    </div>
+                
+                `
+                const collectIcon = li.querySelector('.collect')
+    collectIcon.addEventListener('click', async()=>{
+        collectIcon.classList.toggle('active')
+
+       try{ const res = await axios.post('/api/posts/addCollect',{
+            userid_collect:userData.id_user,
+            id_from_post:tempObj.id
+        })
+        if(res.data){
+               
+            if(res.data) {
+                //显示成功
+                success_alert.style.display = 'block';
+                success_alert.textContent = '收藏成功'
+                setTimeout(()=>{
+                    success_alert.style.display = 'none';
+                },5000);
+               
+            }
+
+        }
+            }catch(error){
+                console.error('收藏失败:', error);
+                    danger.textContent = error.response?.data || error.message || '收藏失败，请重试';
+                    danger.style.display = 'block';
+                    setTimeout(()=>{
+                        danger.style.display = 'none';
+                    },5000);
+
+            }
+                
+            })
+
+            //表示出是否收藏
+            collectIcon.classList.add('active')
+
+        
+      
+
+                    }
+                }
+            }
+        }
+
+    }
+  
+   
+     
+
+
+
+
+// 页面加载完成时初始化内容
+document.addEventListener('DOMContentLoaded', async () => {
+    // 获取当前URL路径
+    const path = window.location.pathname;
+    
+    // 根据路径决定加载什么内容
+    if (path.includes('/ask')) {
+        await loadContent('ask');
+    } else if (path.includes('/friends')) {
+        await loadContent('friend');
+    } else if (path.includes('/collects')) {
+        await loadContent('collects');
+    } else {
+        // 默认加载帖子列表
+        await loadContent('post');
+    }
+    
+    // 更新导航栏active状态
+    updateNavigation(path);
+});
+
+// 更新导航栏active状态
+function updateNavigation(path) {
+    const items = document.querySelectorAll('.part a');
+    items.forEach(item => {
+        item.classList.remove('active');
+        item.style.color = 'black'
+        const type = item.getAttribute('onclick').match(/'([^']+)'/)[1];
+       
+        if (path.includes(type)) {
+            item.classList.add('active');
+            item.style.color = "#e09620"
+        } 
+    });
+}
+
+// 显示添加内容弹窗
+function showAdding() {
+    document.querySelector('.adding').classList.add('active');
+    document.querySelector('.adding_content').style.display = 'block';
+}
+
+// 关闭添加内容弹窗
+function closeAdding() {
+    document.querySelector('.adding').classList.remove('active');
+    document.querySelector('.adding_content').style.display = 'none';
+}
+
+//提交表单
+
+Array.from(forms).forEach(form=>{
+    form.addEventListener('submit',async(event)=>{
+        event.preventDefault();
+        event.stopPropagation();
+
+        //检查一下内容不能为空
+        const newContent = document.getElementById('content');
+        const newType = document.getElementById('contentType');
+        
+        if(newContent.value.trim()==""){
+            danger.textContent = '内容不能为空';
+            danger.style.display = 'block';
+            setTimeout(()=>{
+                danger.style.display = 'none';
+            },5000);
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('name', userData.name);
+        formData.append('content', newContent.value.trim());
+        formData.append('avatar', userData.avatar);
+        formData.append('type', newType.value);
+        formData.append('id_user', userData.id_user);
+        formData.append('time', new Date().toISOString());
+        selectedImages.forEach((img, idx) => {
+            formData.append('images', img.file);
+        });
+
+        try {
+            console.log('发送请求的用户数据:', userData);
+            // 使用封装后的request方法发送请求
+            const res = await axios.post('/api/posts/add', formData, {
+                    headers: {'Content-Type': 'multipart/form-data'}
+                    });
+            
+            console.log('发布响应:', res);
+            
+            if(res.data) {
+                //显示成功
+                success_alert.style.display = 'block';
+                setTimeout(()=>{
+                    success_alert.style.display = 'none';
+                },5000);
+                // 重新加载内容
+                await loadContent(newType.value === '帖子' ? 'post' : 'ask');
+                closeAdding();
+                // 清空表单
+                form.reset();
+            }
+        } catch(error) {
+            console.error('发布失败:', error);
+            danger.textContent = error.response?.data || error.message || '发布失败，请重试';
+            danger.style.display = 'block';
+            setTimeout(()=>{
+                danger.style.display = 'none';
+            },5000);
+        }
+    });
+});
+
+// 图片上传与预览
+let selectedImages = [];
+
+const imageInput = document.getElementById('imageInput');
+const addImageBtn = document.getElementById('addImageBtn');
+const imageGrid = document.getElementById('imageGrid');
+
+addImageBtn.onclick = () => {
+    if (selectedImages.length >= 9) return;
+    imageInput.click();
+};
+
+imageInput.onchange = function(e) {
+    const files = Array.from(e.target.files);
+    const remain = 9 - selectedImages.length;
+    const toAdd = files.slice(0, remain);
+    toAdd.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            selectedImages.push({file, url: ev.target.result});
+            renderImageGrid();
+        };
+        reader.readAsDataURL(file);
+    });
+    imageInput.value = '';
+};
+
+function renderImageGrid() {
+    imageGrid.innerHTML = '';
+    selectedImages.forEach((img, idx) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'image-thumb-wrapper';
+        wrapper.innerHTML = `
+            <img src="${img.url}" class="image-thumb">
+            <button class="image-thumb-delete" data-idx="${idx}">&times;</button>
+        `;
+        imageGrid.appendChild(wrapper);
+    });
+    if (selectedImages.length < 9) {
+        imageGrid.appendChild(addImageBtn);
+    }
+    // 删除按钮事件
+    imageGrid.querySelectorAll('.image-thumb-delete').forEach(btn => {
+        btn.onclick = function() {
+            const idx = parseInt(btn.dataset.idx);
+            selectedImages.splice(idx, 1);
+            renderImageGrid();
+        }
+    });
+}
+
+const sortDropdown = document.querySelector('.sort-dropdown');
+const sortToggle = document.querySelector('.sort-toggle');
+const twoType = document.querySelector('.sort-dropdown .two_type');
+
+sortToggle.addEventListener('click', function(e) {
+    e.stopPropagation();
+    sortDropdown.classList.toggle('open');
+    if (sortDropdown.classList.contains('open')) {
+        twoType.style.display = 'flex';
+    } else {
+        twoType.style.display = 'none';
+    }
+});
+
+// 点击页面其他地方自动收起
+document.addEventListener('click', function(e) {
+    if (sortDropdown.classList.contains('open')) {
+        sortDropdown.classList.remove('open');
+        twoType.style.display = 'none';
+    }
+});
+
+   
+
+       
+    </script>

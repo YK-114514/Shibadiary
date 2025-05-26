@@ -1,0 +1,70 @@
+.father{
+    position:relative
+}
+.header{
+    position:fixed;
+    width:1500px;
+    height:80px;
+    top:0px;
+    border-bottom:2px solid #9f9d9d;
+    z-index:100;
+    background-color: white;
+    
+   
+}
+.header-next{
+    display: flex;
+    flex-direction: row;
+
+    
+  
+}
+.header-next .logo{
+    margin-left: 20px;
+    width: 70px;
+    height: 70px;
+}
+.header-next .title{
+    margin-left:20px;
+    margin-top:20px;
+    height:40px
+}
+
+.header-next .topics{
+   width: 60%;
+   margin-top:25px;
+  
+   
+  
+}
+.header-next .topics li{
+   display:inline-block;
+    margin-left:20%;
+    
+}
+.header-next .topics li a{
+   text-decoration: none;
+    color:black
+}
+.header-next .topics li a:hover{
+    color:#ffb53a
+}
+.header-next .topics li a.active{
+    color:#e09620;
+    font-weight:bold
+    
+}
+
+.header-next .login-header{
+    margin-top:25px;
+    height:70px
+}
+.header-next .login-header a{
+    text-decoration: none;
+    color:black
+
+}
+
+.header-next .login-header a:hover{
+    color:#ffb53a
+}
