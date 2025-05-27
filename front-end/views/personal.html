@@ -7,29 +7,33 @@
     <link rel="stylesheet" href="../css/personal.css">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="../http.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Zhi+Mang+Xing&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
 </head>
 <body>
    
     <div class="header">
-       
         <a class="index" href="/index">
-        <img class="logo" src="../images/logo.png"></img>
-        <img class="title" src="../images/title.png"></img>
+            <img class="logo" src="../images/logo.png">
+            <img class="title" src="../images/title.png">
         </a>
-       
+        <a href="/setting" class="setting">账号设置</a>
     </div>
-    
-        <div class="middle">
-            <img class="profile" src=""></img>
+
+    <div class="middle">
+        <img class="profile" src="" alt="avatar">
+        <div class="info-block">
             <p class="name">测试</p>
+            <p class="stats">关注: -- | 粉丝: --</p>
         </div>
-        
-        <div class="content-container">
-        
-        <ul class="content">
-           
-        </ul>
-        </div>
+    </div>
+
+    <div class="section-title">我 的 发 布</div>
+
+    <div class="content-container">
+        <ul class="content"></ul>
+    </div>
     
     
 </body>
@@ -37,8 +41,8 @@
 
 <script>
 
-    //获取个人信息session
-    const userD = sessionStorage.getItem('user_data')
+    //获取个人信息localStorage
+    const userD = localStorage.getItem('user_data')
     const user_data = JSON.parse(userD)
 
     const avatarGet = document.querySelector('.profile')

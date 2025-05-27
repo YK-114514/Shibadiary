@@ -90,10 +90,7 @@ axios.interceptors.response.use(
                     sessionStorage.removeItem('user_data');
                     console.log('用户数据已清除');
                     
-                    // 延迟跳转，确保数据清理完成
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 1000);
+                   
                     
                     return Promise.reject('登录已过期，请重新登录');
                 } catch (e) {

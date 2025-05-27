@@ -143,14 +143,20 @@
 
 .alert {
     position: fixed;
-    z-index: 1000;
-    top: 100px;
+    top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    width: 380px;
+    z-index: 1000;
+    min-width: 300px;
     text-align: center;
     border-radius: 6px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.alert.show {
+    opacity: 1;
 }
 
 .alert-success {

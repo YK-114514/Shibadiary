@@ -6,6 +6,7 @@
         <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
         <script src="../http.js"></script>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
     </head>
 <body>
     <!--header-->
@@ -28,17 +29,14 @@
             </ul>
           <div class="login-header">
             <a href="/login" class="before-login">登录</a>
-            <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#userInfo" style="display:none">
-                欢迎，
-            </button>
-            <div class="collapse mt-3" id="userInfoShowing" style="display:none">
-                <a href="/personal" class="card card-body" id="personal">
-                    个人信息
-                </a>
-                <a href="javascript:;" class="card card-body" id="logout">
-                    退出登录
-                </a>
-              </div>
+            <a href="javascript:;" class="user-menu" style="display:none">
+                欢迎，<span class="username"></span>
+               
+            </a>
+            <div class="user-dropdown">
+                <a href="/personal">个人信息</a>
+                <a href="javascript:;" id="logout">退出登录</a>
+            </div>
            </div>
            
         </div>
@@ -86,14 +84,14 @@
         <div class="menu-next">
             <ul class="part">
                
-                    <a href="javascript:;" onclick="navigate('post')" class="active" data-id="1">Posts</a>
+                    <a href="javascript:;" onclick="navigate('post')" class="active" data-id="1">晒图</a>
                 
               
-                    <a href="javascript:;" onclick="navigate('ask')" data-id="2">Questions</a>
+                    <a href="javascript:;" onclick="navigate('ask')" data-id="2">问答</a>
                
-                    <a href="javascript:;" onclick="navigate('friends')" data-id="3">Friends</a>
+                    <a href="javascript:;" onclick="navigate('friends')" data-id="3">好友</a>
                 
-                    <a href="javascript:;" onclick="navigate('collect')" data-id="4">Collects</a>
+                    <a href="javascript:;" onclick="navigate('collect')" data-id="4">收藏</a>
                
 
             </ul>
@@ -142,8 +140,12 @@
 
     </div>
 </body>
+<!-- 添加图片预览容器 -->
+<div class="image-preview-overlay" style="display: none;">
+    <img class="preview-image" src="" alt="预览图片">
+</div>
     <script >
-        const userD = sessionStorage.getItem('user_data');
+        const userD = localStorage.getItem('user_data');
         let userData = null;
         try {
             userData = userD ? JSON.parse(userD) : null;
@@ -152,47 +154,59 @@
         }
         //登录前后
         const logining = document.querySelector('.login-header .before-login')
-        const showing = document.querySelector('.btn-primary')
-        const showing_content = document.getElementById('userInfoShowing')
+        const userMenu = document.querySelector('.user-menu')
+        const username = document.querySelector('.username')
+        const userDropdown = document.querySelector('.user-dropdown')
         const logout_click = document.getElementById('logout')
         const addingImg = document.querySelector('.adding')
         const forms = document.querySelectorAll('.needs-validation');
         const danger = document.querySelector('.alert-danger');
         const success_alert = document.querySelector('.alert-success');
 
-        let isShow = false;
         if(!localStorage.getItem('eleToken') || !userData){
             logining.style.display = 'block'
-            showing.style.display = 'none'
-            showing_content.style.display = 'none'
+            userMenu.style.display = 'none'
         }else{
             logining.style.display = 'none'
-            showing.style.display = 'block'
-            showing.innerHTML = `欢迎，${userData.name}`
+            userMenu.style.display = 'block'
+            username.textContent = userData.name
 
-            //点击显示
-            showing.addEventListener('click',()=>{
-                if(!isShow){
-                    isShow = true;
-                    showing_content.style.display = 'block'
-                }else{
-                    isShow = false;
-                    showing_content.style.display = 'none'
-                }
-            })
+            //点击显示/隐藏下拉菜单
+            if (userMenu && userDropdown) {
+                userMenu.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    userDropdown.classList.toggle('show');
+                    const arrow = userMenu.querySelector('.arrow');
+                    if (arrow) {
+                        arrow.classList.toggle('rotate');
+                    }
+                });
+
+                //点击其他地方关闭下拉菜单
+                document.addEventListener('click', (e) => {
+                    if (userMenu && userDropdown && !userMenu.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.remove('show');
+                        const arrow = userMenu.querySelector('.arrow');
+                        if (arrow) {
+                            arrow.classList.remove('rotate');
+                        }
+                    }
+                });
+            }
 
             //退出登录
-            logout_click.addEventListener('click',()=>{
-                localStorage.removeItem('eleToken');
-                sessionStorage.clear();
-                // 更新显示状态
-                logining.style.display = 'block';
-                showing.style.display = 'none';
-                showing_content.style.display = 'none';
-                isShow = false;
-            })
-
-            
+            if (logout_click) {
+                logout_click.addEventListener('click', () => {
+                    localStorage.removeItem('eleToken');
+                    localStorage.clear();
+                    // 更新显示状态
+                    if (logining) logining.style.display = 'block';
+                    if (userMenu) userMenu.style.display = 'none';
+                    if (userDropdown) userDropdown.classList.remove('show');
+                    const arrow = userMenu?.querySelector('.arrow');
+                    if (arrow) arrow.classList.remove('rotate');
+                });
+            }
         }
 
         //adding是否显示
@@ -293,6 +307,16 @@
     }
     getCollectData().then(allC=>console.log(allC))
 
+    async function getLikeData(postId) {
+    try {
+        const res = await axios.get(`/api/posts/like/${postId}`);
+        return res.data;
+    } catch (error) {
+        console.error('获取点赞数据失败:', error);
+        return { likeCount: 0, userIdLike: [] };
+    }
+}
+
     //首先看是否是按热度/按点赞
 
     const likeDesc = document.getElementById('likeDesc')
@@ -304,55 +328,19 @@
       
 
        //然后我们获取热门贴
-       async function getPosts(sortBy){
-
-        //首先看是否是按热度/按点赞
-
-       
-        let post_Datas = []
-
+       async function getPosts(sortBy) {
+        let post_Datas = [];
+        
         if (sortBy === 'like') {
-            post_Datas = await getLikeDesc()  
-            console.log(sortBy) // 根据点赞数排序的帖子
+            post_Datas = await getLikeDesc();
         } else {
-            post_Datas = await getAllData()  
-            console.log(sortBy)  // 根据时间排序的帖子
+            post_Datas = await getAllData();
         }
-    
-
-        /*likeDesc.addEventListener('click',()=>{
-            if(!likeDesc.classList.contains('active')){
-                likeDesc.classList.add('active')
-                timeDesc.classList.remove('active')
-            }
-        })
-
-        timeDesc.addEventListener('click',()=>{
-            if(!timeDesc.classList.contains('active')){
-                timeDesc.classList.add('active')
-                likeDesc.classList.remove('active')
-            }
-        })
         
-
-        if(likeDesc.classList.contains('active')){
-            post_Datas = await getLikeDesc()
-        }else{
-
-            post_Datas = await getAllData()
-
-        }*/
-
-        content.innerHTML=""
+        content.innerHTML = "";
         
-       
-    
-        console.log('alldata',post_Datas)
-       
-        //let post_Datas = []
-        for(let i in post_Datas){
-
-            if(post_Datas[i].type == '帖子'){
+        for (let i in post_Datas) {
+            if (post_Datas[i].type == '帖子') {
                 const formatted = new Date(post_Datas[i].time).toLocaleString('zh-CN', {
                     year: 'numeric',
                     month: '2-digit',
@@ -360,19 +348,22 @@
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: false
-                    });
+                });
 
                 // 判断是否为贴主
                 let deleteBtnHtml = '';
                 if (userData && post_Datas[i].id_user == userData.id_user) {
-                    deleteBtnHtml = `<button class="btn btn-link btn-sm delete-post-btn" data-id="${post_Datas[i].id}" style="position:absolute;top:8px;right:8px;z-index:10;"><i class="bi bi-trash" style="font-size:20px;color:#e74c3c;"></i></button>`;
+                    deleteBtnHtml = `<button class="btn btn-link btn-sm delete-post-btn" data-id="${post_Datas[i].id}">
+                        <i class="bi bi-trash" style="font-size:20px;color:rgb(207, 185, 137);"></i>
+                    </button>`;
                 }
 
-                // 假设 post_Datas[i].images 是 JSON 字符串
+                // 处理图片
                 let imagesArr = [];
                 try {
                     imagesArr = post_Datas[i].images ? JSON.parse(post_Datas[i].images) : [];
-                } catch(e) {
+                } catch(error) {
+                    console.error('解析图片数据失败:', error);
                     imagesArr = [];
                 }
 
@@ -383,362 +374,76 @@
                         `</div>`;
                 }
 
-        
-        
-            post_Datas.push(allData)
-            //const content = document.querySelector('.content-next');
-        const li = document.createElement(`li`)
-        content.appendChild(li)
-       
-        li.innerHTML = `
-        <div class="mulu-top" style="position:relative;">
-        ${deleteBtnHtml}
-        <div class="mulu">
-        <image class="avatar" src=${post_Datas[i].avatar}></image>
+                const li = document.createElement('li');
+                content.appendChild(li);
                 
-                        <div class="list">
-                        <div class="divide_row">
-                            <a href="javascript:;" class="uname">${post_Datas[i].name}</a>
-                            
-                              </div>
-                             
-                             
-                            <p class="sentences">${post_Datas[i].content}</p>
-                            ${picturesHtml}
-                            <div class="last">
-                                <p class="time">${formatted}</p>
-                                <div class="others">
-                                    <a href="javascript:;" class="like" data-id="${post_Datas[i].id}">❤ 0</a>
-                                    <a href="javascript:;" class="collect" data-id="${post_Datas[i].id}">⭐ 收藏</a>
-                                    <a href='javascript:;' class="say" data-id="${post_Datas[i].id}">🖊 评论</a>
-    
-                                    
+                li.innerHTML = `
+                    <div class="mulu-top" style="position:relative;">
+                        ${deleteBtnHtml}
+                        <div class="mulu">
+                            <image class="avatar" src=${post_Datas[i].avatar}></image>
+                            <div class="list">
+                                <div class="divide_row">
+                                    <a href="javascript:;" class="uname">${post_Datas[i].name}</a>
+                                </div>
+                                <p class="sentences">${post_Datas[i].content}</p>
+                                ${picturesHtml}
+                                <div class="last">
+                                    <p class="time">${formatted}</p>
+                                    <div class="others">
+                                        <a href="javascript:;" class="like" data-id="${post_Datas[i].id}">❤ 0</a>
+                                        <a href="javascript:;" class="collect" data-id="${post_Datas[i].id}">⭐ 收藏</a>
+                                        <a href='javascript:;' class="say" data-id="${post_Datas[i].id}">🖊 评论</a>
+                                    </div>
                                 </div>
                             </div>
-                        
-                            
                         </div>
-                        
-                            
-                        
-        </div>
-         <div class="comments hidden" data-id="${post_Datas[i].id}">
-                    <div class="inputComment">
-                     <textarea id="my" placeholder="说点什么吧..." maxlength="200"></textarea>
-                     <button class="submitComment">发送</button>
-                     </div>
-                     <div class="otherComments">
-                    
-                     </div>
-                    
-                                      
-    
+                        <div class="comments hidden" data-id="${post_Datas[i].id}">
+                            <div class="inputComment">
+                                <textarea id="my" placeholder="说点什么吧..." maxlength="200"></textarea>
+                                <button class="submitComment">发送</button>
+                            </div>
+                            <div class="otherComments"></div>
+                        </div>
                     </div>
-                   
-            </div>
-           
-        `
-         //评论区
-         async function getComments(){
-            try {
-                    const res = await axios.get(`/api/posts/${post_Datas[i].id}/comments`);
-                    allComments = res.data; // 保存数据到全局变量
-                    return res.data;  // 返回真正的数据！
-                } catch (error) {
-                    console.error('获取数据失败:', error);
-                    return []; // 失败时返回空数组
+                `;
+
+                // 获取点赞数据并更新显示
+                if (userData) {
+                    try {
+                        const likeData = await getLikeData(post_Datas[i].id);
+                        const likeIcon = li.querySelector('.like');
+                        likeIcon.innerHTML = `❤${likeData.likeCount}`;
+                        
+                        for (let p in likeData.userIdLike) {
+                            if (likeData.userIdLike[p] == userData.id_user) {
+                                likeIcon.classList.add('active');
+                            }
+                        }
+                    } catch(error) {
+                        console.error('获取点赞数据失败:', error);
+                    }
                 }
-        }
 
-        getComments().then((allC)=>{
-            console.log(allC)
-        })
-    
-
-        //设置评论区
-
-        const commentValueRemen = li.querySelector(`.comments textarea`)
-        const commentSubmitRemen = li.querySelector(`.comments .submitComment`)
-        const showComments = await getComments()
-        let commentRemen = li.querySelector(`.otherComments`)
-
-         //首先，如果eletoken没有的话，我们不能发表评论
-         if(!localStorage.getItem('eleToken')){
-                commentValueRemen.placeholder = '请先登录'
-                commentSubmitRemen.disabled = true
-         }
-        if(showComments.length == 0){
-            commentRemen.innerHTML = `抢个沙发吧`
-            
-        }else{
-            for(let n in showComments){
-            const liComment = document.createElement('li')
-            commentRemen.appendChild(liComment)
-            liComment.innerHTML = `
-            
-                    <div class="xijie">
-                        <image class="avatar1" src=${showComments[n].avatar}></image>
-                            <div class="exceptA">
-                            <div class='author-container'>
-                                <a href="javascript:;" class="name">${showComments[n].name}</a>
-                                   
-                                </div>
-                                  <div class="information">
-                                </div>
-                                <p class="words" >${showComments[n].content}</p>
-                                <div class="timesLike">
-                                    <p class="ctime">${showComments[n].time}</p>
-                                </div>
-                            </div>
-                          
-                    </div>
-                     <div class="reply-container">
-
-                        </div>
-                    
-                      
-                    `
-            }
-        }
-          //评论区
-        document.querySelector('.content-next').addEventListener('click', function(e) {
-            // 评论按钮
-            if (e.target.classList.contains('say')) {
-                const postId = e.target.dataset.id;
-                const muluTop = e.target.closest('.mulu-top');
-                if (muluTop) {
-                    const cmt = muluTop.querySelector(`.comments[data-id=\"${postId}\"]`);
-                    if (cmt) {
-                        cmt.classList.toggle('hidden');
+                // 获取收藏数据并更新显示
+                if (userData) {
+                    try {
+                        const collectPost = await getCollectData();
+                        const collectIcon = li.querySelector('.collect');
+                        
+                        for (let m in collectPost) {
+                            if (collectPost[m].id_from_post == post_Datas[i].id) {
+                                collectIcon.classList.add('active');
+                            }
+                        }
+                    } catch(error) {
+                        console.error('获取收藏数据失败:', error);
                     }
                 }
             }
-            // 用户名
-            if (e.target.classList.contains('uname')) {
-                const muluTop = e.target.closest('.mulu-top');
-                const postId = muluTop.querySelector('.say').dataset.id;
-                const post = post_Datas.find(p => p.id == postId);
-                if (post) {
-                    if (userData && post.id_user == userData.id_user) {
-                        window.location.href = '/personal';
-                    } else {
-                        window.location.href = `/accounts?id=${post.id_user}`;
-                    }
-                }
-            }
-            // 删除按钮
-            if (e.target.closest('.delete-post-btn')) {
-                const btn = e.target.closest('.delete-post-btn');
-                const postId = btn.dataset.id;
-                if (window.confirm('确定要删除这条帖子吗？')) {
-                    axios.delete(`/api/posts/${postId}`)
-                        .then(res => {
-                            alert('删除成功');
-                            window.location.reload();
-                        })
-                        .catch(err => {
-                            alert('删除失败');
-                        });
-                }
-            }
-        });
-
-    //发布评论
-   
-        commentSubmitRemen.addEventListener('click', async function() {
-    const content = commentValueRemen.value.trim()  // 获取评论内容
-
-    if (!content) {
-        alert('评论内容不能为空')
-        return
-    }
-
-    // 准备评论数据
-    const commentData = {
-        name: userData.name,
-        avatar: userData.avatar,
-        content: content,
-        id_user: userData.id_user,
-        id_from_post: post_Datas[i].id
-    }
-
-    try {
-        // 发送POST请求
-        const res = await axios.post(`/api/posts/comments`, commentData)
-
-        if (res.data && res.data.success) {
-            success_alert.style.display = 'block';
-                setTimeout(()=>{
-                    success_alert.style.display = 'none';
-                },5000);
-            // 可以在这里把新评论直接插入到评论区（不用刷新页面）
-            const liComment = document.createElement('li')
-            commentRemen.appendChild(liComment)
-            liComment.innerHTML = `
-                <div class="xijie">
-                    <img class="avatar1" src="${userData.avatar}">
-                    <div class="exceptA">
-                        <div class='author-container'>
-                            <a href="javascript:;" class="name">${userData.name}</a>
-                            
-                        </div>
-                        <div class="information"></div>
-                        <p class="words">${content}</p>
-                        <div class="timesLike">
-                            <p class="ctime">刚刚</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="reply-container"></div>
-            `
-            commentValueRemen.value = ''  // 清空输入框
-        } else {
-            danger.textContent = '评论失败';
-            danger.style.display = 'block';
-            setTimeout(()=>{
-                danger.style.display = 'none';
-            },5000);
-            return;
-        }
-    } catch (error) {
-        console.error('评论提交失败:', error)
-        alert('服务器错误，稍后再试')
-    }
-})
-
-    //收藏
-    const collectIcon = li.querySelector('.collect')
-    collectIcon.addEventListener('click', async()=>{
-        collectIcon.classList.toggle('active')
-       try{ const res = await axios.post('/api/posts/addCollect',{
-            userid_collect:userData.id_user,
-            id_from_post:post_Datas[i].id
-        })
-      
-               
-            if(res.data) {
-                //显示成功
-                success_alert.style.display = 'block';
-                success_alert.textContent = '操作成功'
-                setTimeout(()=>{
-                    success_alert.style.display = 'none';
-                },5000);
-               
-            }
-
-        
-    }catch(error){
-        console.error('收藏失败:', error);
-            danger.textContent = error.response?.data || error.message || '收藏失败，请重试';
-            danger.style.display = 'block';
-            setTimeout(()=>{
-                danger.style.display = 'none';
-            },5000);
-
-    }
-        
-    })
-
-    //表示出是否收藏
-    const collectPost = await getCollectData()
-    if(userData){
-    for(let m in collectPost){
-        if(collectPost[m].id_from_post == post_Datas[i].id){
-            console.log('test',post_Datas[i].id)
-            collectIcon.classList.add('active')
-
-
         }
     }
-}
 
-    //点赞
-    const likeIcon = li.querySelector('.like')
-    likeIcon.addEventListener('click',async()=>{
-        let likeCount = parseInt(likeIcon.innerText.slice(1)) 
-        //console.log('点赞')
-        if (likeIcon.classList.contains('active')) {
-            likeCount -= 1
-            likeIcon.innerHTML = `❤${likeCount}`
-        } else {
-            likeCount += 1
-            likeIcon.innerHTML = `❤${likeCount}`
-        }
-        likeIcon.classList.toggle('active')
-       
-
-        try{
-            const res = await axios.post('/api/posts/addLike',{
-            userid_like:userData.id_user,
-            id_from_post:post_Datas[i].id
-        })
-        
-               
-            if(res.data) {
-                //显示成功
-                success_alert.style.display = 'block';
-                success_alert.textContent = '操作成功'
-                setTimeout(()=>{
-                    success_alert.style.display = 'none';
-                },5000);
-               
-            }
-
-        
-
-
-        }catch(error){
-            console.error('操作失败:', error);
-            danger.textContent = error.response?.data || error.message || '操作失败，请重试';
-            danger.style.display = 'block';
-            setTimeout(()=>{
-                danger.style.display = 'none';
-            },5000);
-
-        }
-
-    })
-
-    //显示点赞
-    let allLike = []
-    async function getLikeData(){
-        try{
-            const res = await axios.get(`/api/posts/like/${post_Datas[i].id}`)
-            allLike = res.data
-            return allLike
-        }catch(error){
-            console.log(error)
-            return []
-
-        }
-    }
-    if(userData){
-    const likeData = await getLikeData()
-    console.log(likeData)
-    likeIcon.innerHTML = `❤${likeData.likeCount}`
-    for(let p in likeData.userIdLike){
-        if(likeData.userIdLike[p] == userData.id_user){
-            likeIcon.classList.add('active')
-        }
-    }
-}
-
-      
-    
-
-
-
-
-   
-   
-
-
-
-        }
-
-    }
-
-    }
     // 点击按热度排序
     likeDesc.addEventListener('click', () => {
         if (!likeDesc.classList.contains('active')) {
@@ -988,20 +693,275 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // 更新导航栏active状态
     updateNavigation(path);
+
+    // 使用事件委托处理所有交互
+    document.querySelector('.content-next').addEventListener('click', async function(e) {
+        const target = e.target;
+        const postId = target.dataset.id;
+        
+        // 点赞按钮
+        if (target.classList.contains('like')) {
+            if (!localStorage.getItem('eleToken')) {
+                alert('请先登录');
+                return;
+            }
+            
+            try {
+                const res = await axios.post('/api/posts/addLike', {
+                    userid_like: userData.id_user,
+                    id_from_post: postId
+                });
+                
+                if (res.data) {
+                    target.classList.toggle('active');
+                    const currentCount = parseInt(target.textContent.match(/\d+/)[0]);
+                    target.innerHTML = `❤ ${target.classList.contains('active') ? currentCount + 1 : currentCount - 1}`;
+                    
+                    success_alert.style.display = 'block';
+                    success_alert.textContent = target.classList.contains('active') ? '点赞成功' : '取消点赞';
+                    setTimeout(() => {
+                        success_alert.style.display = 'none';
+                    }, 5000);
+                }
+            } catch (error) {
+                console.error('点赞操作失败:', error);
+                danger.textContent = '操作失败，请重试';
+                danger.style.display = 'block';
+                setTimeout(() => {
+                    danger.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // 收藏按钮
+        if (target.classList.contains('collect')) {
+            if (!localStorage.getItem('eleToken')) {
+                alert('请先登录');
+                return;
+            }
+            
+            try {
+                const res = await axios.post('/api/posts/addCollect', {
+                    userid_collect: userData.id_user,
+                    id_from_post: postId
+                });
+                
+                if (res.data) {
+                    target.classList.toggle('active');
+                    success_alert.style.display = 'block';
+                    success_alert.textContent = target.classList.contains('active') ? '收藏成功' : '取消收藏';
+                    setTimeout(() => {
+                        success_alert.style.display = 'none';
+                    }, 5000);
+                }
+            } catch (error) {
+                console.error('收藏操作失败:', error);
+                danger.textContent = '操作失败，请重试';
+                danger.style.display = 'block';
+                setTimeout(() => {
+                    danger.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // 删除按钮
+        if (target.classList.contains('delete-post-btn') || target.closest('.delete-post-btn')) {
+            const deleteBtn = target.classList.contains('delete-post-btn') ? target : target.closest('.delete-post-btn');
+            if (confirm('确定要删除这条帖子吗？')) {
+                try {
+                    const res = await axios.delete(`/api/posts/${deleteBtn.dataset.id}`);
+                    if (res.data) {
+                        const postElement = deleteBtn.closest('.mulu-top');
+                        postElement.remove();
+                        success_alert.style.display = 'block';
+                        success_alert.textContent = '删除成功';
+                        setTimeout(() => {
+                            success_alert.style.display = 'none';
+                        }, 5000);
+                    }
+                } catch (error) {
+                    console.error('删除失败:', error);
+                    danger.textContent = '删除失败，请重试';
+                    danger.style.display = 'block';
+                    setTimeout(() => {
+                        danger.style.display = 'none';
+                    }, 5000);
+                }
+            }
+        }
+        
+        // 用户页面跳转
+        if (target.classList.contains('uname')) {
+            const username = target.textContent;
+            window.location.href = `/personal/${username}`;
+        }
+    });
+
+    // 添加图片预览功能
+    const overlay = document.querySelector('.image-preview-overlay');
+    const previewImage = document.querySelector('.preview-image');
+
+    // 为所有帖子图片添加点击事件
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('post-image')) {
+            previewImage.src = e.target.src;
+            overlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+    });
+
+    // 点击遮罩层关闭预览
+    overlay.addEventListener('click', function() {
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+    });
+
+    // 阻止图片点击事件冒泡
+    previewImage.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    // 使用事件委托处理评论按钮点击
+    document.querySelector('.content-next').addEventListener('click', async function(e) {
+        console.log('点击事件触发，目标元素:', e.target);
+        console.log('目标元素的类名:', e.target.className);
+        
+        // 评论按钮
+        if (e.target.classList.contains('say')) {
+            console.log('点击了评论按钮');
+            const postId = e.target.dataset.id;
+            console.log('帖子ID:', postId);
+            
+            const muluTop = e.target.closest('.mulu-top');
+            console.log('找到的mulu-top元素:', muluTop);
+            
+            if (muluTop) {
+                const cmt = muluTop.querySelector(`.comments[data-id="${postId}"]`);
+                console.log('找到的评论区域元素:', cmt);
+                console.log('评论区域当前显示状态:', cmt ? cmt.classList.contains('hidden') : '未找到');
+                
+                if (cmt) {
+                    console.log('切换评论区域显示状态');
+                    cmt.classList.toggle('hidden');
+                    console.log('切换后的显示状态:', cmt.classList.contains('hidden'));
+                    
+                    // 如果评论区域显示，则加载评论
+                    if (!cmt.classList.contains('hidden')) {
+                        try {
+                            const res = await axios.get(`/api/posts/${postId}/comments`);
+                            const comments = res.data;
+                            const otherComments = cmt.querySelector('.otherComments');
+                            
+                            if (comments.length === 0) {
+                                otherComments.innerHTML = '抢个沙发吧';
+                            } else {
+                                otherComments.innerHTML = comments.map(comment => `
+                                    <div class="xijie">
+                                        <image class="avatar1" src=${comment.avatar}></image>
+                                        <div class="exceptA">
+                                            <div class='author-container'>
+                                                <a href="javascript:;" class="name">${comment.name}</a>
+                                            </div>
+                                            <div class="information"></div>
+                                            <p class="words">${comment.content}</p>
+                                            <div class="timesLike">
+                                                <p class="ctime">${comment.time}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="reply-container"></div>
+                                `).join('');
+                            }
+                            
+                            // 设置评论提交按钮事件
+                            const submitBtn = cmt.querySelector('.submitComment');
+                            const textarea = cmt.querySelector('textarea');
+                            
+                            if (!localStorage.getItem('eleToken')) {
+                                textarea.placeholder = '请先登录';
+                                submitBtn.disabled = true;
+                            } else {
+                                submitBtn.onclick = async () => {
+                                    const content = textarea.value.trim();
+                                    if (!content) {
+                                        alert('评论内容不能为空');
+                                        return;
+                                    }
+                                    
+                                    try {
+                                        const res = await axios.post('/api/posts/comments', {
+                                            name: userData.name,
+                                            avatar: userData.avatar,
+                                            content: content,
+                                            id_user: userData.id_user,
+                                            id_from_post: postId
+                                        });
+                                        
+                                        if (res.data && res.data.success) {
+                                            success_alert.style.display = 'block';
+                                            success_alert.textContent = '评论成功';
+                                            setTimeout(() => {
+                                                success_alert.style.display = 'none';
+                                            }, 5000);
+                                            
+                                            // 添加新评论到列表
+                                            const newComment = document.createElement('div');
+                                            newComment.innerHTML = `
+                                                <div class="xijie">
+                                                    <img class="avatar1" src="${userData.avatar}">
+                                                    <div class="exceptA">
+                                                        <div class='author-container'>
+                                                            <a href="javascript:;" class="name">${userData.name}</a>
+                                                        </div>
+                                                        <div class="information"></div>
+                                                        <p class="words">${content}</p>
+                                                        <div class="timesLike">
+                                                            <p class="ctime">刚刚</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="reply-container"></div>
+                                            `;
+                                            otherComments.insertBefore(newComment, otherComments.firstChild);
+                                            textarea.value = '';
+                                        }
+                                    } catch (error) {
+                                        console.error('评论提交失败:', error);
+                                        danger.textContent = '评论失败，请重试';
+                                        danger.style.display = 'block';
+                                        setTimeout(() => {
+                                            danger.style.display = 'none';
+                                        }, 5000);
+                                    }
+                                };
+                            }
+                        } catch (error) {
+                            console.error('加载评论失败:', error);
+                        }
+                    }
+                }
+            }
+        }
+    });
 });
 
 // 更新导航栏active状态
 function updateNavigation(path) {
-    const items = document.querySelectorAll('.part a');
+    // 归一化路径，取最后一段
+    let type = path.split('/').filter(Boolean).pop();
+    // 兼容 /index 或 /index/ 这种情况
+    if (!type || type === 'index') type = 'post';
+
+    const items = document.querySelectorAll('.part a, .menu .part a');
     items.forEach(item => {
         item.classList.remove('active');
-        item.style.color = 'black'
-        const type = item.getAttribute('onclick').match(/'([^']+)'/)[1];
-       
-        if (path.includes(type)) {
+        item.style.color = 'black';
+        // 取按钮的类型
+        const btnType = item.getAttribute('data-type') || (item.getAttribute('onclick') ? item.getAttribute('onclick').match(/'([^']+)'/)[1] : '');
+        if (btnType === type) {
             item.classList.add('active');
-            item.style.color = "#e09620"
-        } 
+            item.style.color = "#e09620";
+        }
     });
 }
 
