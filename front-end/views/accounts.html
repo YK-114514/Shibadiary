@@ -22,7 +22,11 @@
     
         <div class="middle">
             <img class="profile" src=""></img>
+            <div class="info-block">
             <p class="name">测试</p>
+            <p class="stats">关注: -- | 粉丝: --</p>
+            <button class="follow-btn">关注</button>
+        </div>
         </div>
         
         <div class="content-container">
@@ -60,17 +64,23 @@ console.log(userId)
 
     async function getAllData(){
         try{
-           
-          const res = await axios.get(`/api/accounts/${userId}/accounts`)
-            allData = res.data
-            console.log(allData)
+            const res = await axios.get(`/api/accounts/${userId}/accounts`)
+            console.log('API Response:', res.data)
 
-            //设置头像和名字
-            nameGet.innerHTML = allData[0].name
-            avatarGet.src = allData[0].avatar
+            // 直接使用返回的数组数据
+            allData = res.data
+
+            // 设置头像和名字
+            if (allData.length > 0) {
+                nameGet.innerHTML = allData[0].name
+                avatarGet.src = allData[0].avatar
+            }
+
+            // 设置关注数和粉丝数（暂时设为0，等待后端实现）
+            const statsGet = document.querySelector('.stats')
+            statsGet.innerHTML = `关注: 0 | 粉丝: 0`
 
             return allData;   
-
         }catch(error){
             console.log(error)
             return[]
@@ -81,78 +91,52 @@ console.log(userId)
 
     })
 
-    async function getAccounts(){
-        
+    async function getAccounts() {
         const post_Datas = await getAllData()
-        //console.log('alldata',post_Datas)
-       
-        //let post_Datas = []
-        for(let i in post_Datas){
-
-          if(post_Datas.length == 0){
+        
+        if (post_Datas.length === 0) {
             content.innerHTML = '什么也没有哦'
-          }else{
-                const formatted = new Date(post_Datas[i].time).toLocaleString('zh-CN', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                    });
+            return
+        }
 
-        
-        
-            post_Datas.push(allData)
-            //const content = document.querySelector('.content-next');
-        const li = document.createElement(`li`)
-        content.prepend(li)
-       
-        li.innerHTML = `
-        <div class="mulu-top">
-        <div class="mulu">
-        <image class="avatar" src=${post_Datas[i].avatar}></image>
-                
+        content.innerHTML = '' // 清空现有内容
+
+        post_Datas.forEach(post => {
+            const formatted = new Date(post.time).toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            })
+
+            const li = document.createElement('li')
+            li.innerHTML = `
+                <div class="mulu-top">
+                    <div class="mulu">
+                        <image class="avatar" src=${post.avatar}></image>
                         <div class="list">
-                        <div class="divide_row">
-                            <a href="javascript:;" class="uname">${post_Datas[i].name}</a>
-                            
-                              </div>
-                             <div class="information">
-                      
-             
-                
-                </div>
-                            <p class="sentences">${post_Datas[i].content}</p>
-                            <div class="pictures">
-                            
+                            <div class="divide_row">
+                                <a href="javascript:;" class="uname">${post.name}</a>
                             </div>
+                            <div class="information"></div>
+                            <p class="sentences">${post.content}</p>
+                            <div class="pictures"></div>
                             <div class="last">
                                 <p class="time">${formatted}</p>
                                 <div class="others">
-                                    <a href="javascript:;" class="like" data-id="${i}">❤0</a>
-                                    <a href="javascript:;" class="collect" data-id="${i}">⭐Collects</a>
-                                    <a href='javascript:;' class="say" data-id="${i}">🖊Comments</a>
-    
-                                    
+                                    <a href="javascript:;" class="like" data-id="${post.id}">❤0</a>
+                                    <a href="javascript:;" class="collect" data-id="${post.id}">⭐Collects</a>
+                                    <a href='javascript:;' class="say" data-id="${post.id}">🖊Comments</a>
                                 </div>
                             </div>
-                        
-                            
                         </div>
-                        
-                            
-                        
-        </div>
-                   
-            </div>
-           
-        `
-          }
-
-        }
-    
-
+                    </div>
+                </div>
+            `
+            content.prepend(li)
+        })
     }
 
     document.addEventListener('DOMContentLoaded', () => {

@@ -35,6 +35,7 @@
             </a>
             <div class="user-dropdown">
                 <a href="/personal">个人信息</a>
+                <a href="javascript:;">消息中心</a>
                 <a href="javascript:;" id="logout">退出登录</a>
             </div>
            </div>
@@ -323,14 +324,10 @@
     const timeDesc = document.getElementById('timeDesc')
     const content = document.querySelector('.content-next')
 
-    
-      
-      
-
-       //然后我们获取热门贴
-       async function getPosts(sortBy) {
+    //然后我们获取热门贴
+    async function getPosts(sortBy) {
         let post_Datas = [];
-        
+
         if (sortBy === 'like') {
             post_Datas = await getLikeDesc();
         } else {
@@ -348,7 +345,7 @@
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: false
-                });
+                    });
 
                 // 判断是否为贴主
                 let deleteBtnHtml = '';
@@ -376,35 +373,35 @@
 
                 const li = document.createElement('li');
                 content.appendChild(li);
-                
-                li.innerHTML = `
-                    <div class="mulu-top" style="position:relative;">
-                        ${deleteBtnHtml}
-                        <div class="mulu">
-                            <image class="avatar" src=${post_Datas[i].avatar}></image>
-                            <div class="list">
-                                <div class="divide_row">
-                                    <a href="javascript:;" class="uname">${post_Datas[i].name}</a>
-                                </div>
-                                <p class="sentences">${post_Datas[i].content}</p>
-                                ${picturesHtml}
-                                <div class="last">
-                                    <p class="time">${formatted}</p>
-                                    <div class="others">
-                                        <a href="javascript:;" class="like" data-id="${post_Datas[i].id}">❤ 0</a>
-                                        <a href="javascript:;" class="collect" data-id="${post_Datas[i].id}">⭐ 收藏</a>
-                                        <a href='javascript:;' class="say" data-id="${post_Datas[i].id}">🖊 评论</a>
-                                    </div>
+       
+        li.innerHTML = `
+        <div class="mulu-top" style="position:relative;">
+        ${deleteBtnHtml}
+        <div class="mulu">
+        <image class="avatar" src=${post_Datas[i].avatar}></image>
+                        <div class="list">
+                        <div class="divide_row">
+                            <a href="javascript:;" class="uname" data-userid="${post_Datas[i].id_user}">${post_Datas[i].name}</a>
+                              </div>
+                            <p class="sentences">${post_Datas[i].content}</p>
+                            ${picturesHtml}
+                            <div class="last">
+                                <p class="time">${formatted}</p>
+                                <div class="others">
+                                    <a href="javascript:;" class="like" data-id="${post_Datas[i].id}">❤ 0</a>
+                                    <a href="javascript:;" class="collect" data-id="${post_Datas[i].id}">⭐ 收藏</a>
+                                    <a href='javascript:;' class="say" data-id="${post_Datas[i].id}">🖊 评论</a>
                                 </div>
                             </div>
                         </div>
-                        <div class="comments hidden" data-id="${post_Datas[i].id}">
-                            <div class="inputComment">
-                                <textarea id="my" placeholder="说点什么吧..." maxlength="200"></textarea>
-                                <button class="submitComment">发送</button>
-                            </div>
+        </div>
+         <div class="comments hidden" data-id="${post_Datas[i].id}">
+                    <div class="inputComment">
+                     <textarea id="my" placeholder="说点什么吧..." maxlength="200"></textarea>
+                     <button class="submitComment">发送</button>
+                     </div>
                             <div class="otherComments"></div>
-                        </div>
+                     </div>
                     </div>
                 `;
 
@@ -498,7 +495,7 @@
                 
                         <div class="list">
                         <div class="divide_row">
-                            <a href="javascript:;" class="uname">${ask_Datas[i].name}</a>
+                            <a href="javascript:;" class="uname" data-userid="${ask_Datas[i].id_user}">${ask_Datas[i].name}</a>
                             
                               </div>
                              <div class="information">
@@ -580,7 +577,7 @@
                         
                                 <div class="list">
                                 <div class="divide_row">
-                                    <a href="javascript:;" class="uname">${tempObj.name}</a>
+                                    <a href="javascript:;" class="uname" data-userid="${tempObj.id_user}">${tempObj.name}</a>
                                     
                                     </div>
                                     
@@ -792,8 +789,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // 用户页面跳转
         if (target.classList.contains('uname')) {
-            const username = target.textContent;
-            window.location.href = `/personal/${username}`;
+            const userId = target.dataset.userid;
+            // 判断是否是当前登录用户
+            if (userData && userId == userData.id_user) {
+                window.location.href = '/personal';
+            } else {
+                window.location.href = `/accounts?id=${userId}`;
+            }
         }
     });
 
@@ -852,15 +854,54 @@ document.addEventListener('DOMContentLoaded', async () => {
                             const comments = res.data;
                             const otherComments = cmt.querySelector('.otherComments');
                             
-                            if (comments.length === 0) {
-                                otherComments.innerHTML = '抢个沙发吧';
-                            } else {
-                                otherComments.innerHTML = comments.map(comment => `
-                                    <div class="xijie">
+                            // 1. 分组
+                            const commentMap = {};
+                            const rootComments = [];
+                            const flatReplies = [];
+                            comments.forEach(comment => {
+                                commentMap[comment.idcomments] = comment;
+                                if (!comment.parent_id) {
+                                    rootComments.push(comment);
+                                } else {
+                                    flatReplies.push(comment);
+                                }
+                            });
+
+                            // 2. 渲染
+                            function renderReplies(parentId) {
+                                return flatReplies
+                                    .filter(reply => reply.parent_id == parentId)
+                                    .map(reply => {
+                                        let showName = reply.name;
+                                        // 判断是否是"回复的回复"
+                                        if (reply.parent_id && reply.parent_user_name && commentMap[reply.parent_id] && commentMap[reply.parent_id].parent_id) {
+                                            showName = `${reply.name} 回复 ${reply.parent_user_name}`;
+                                        }
+                                        return `
+                                            <div class="xijie" data-idcomments="${reply.idcomments}" data-userid="${reply.id_user}" data-parent-id="${reply.parent_id}">
+                                                <image class="avatar1" src=${reply.avatar}></image>
+                                                <div class="exceptA">
+                                                    <div class='author-container'>
+                                                        <a href="javascript:;" class="name" data-userid="${reply.id_user}">${showName}</a>
+                                                    </div>
+                                                    <div class="information"></div>
+                                                    <p class="words">${reply.content}</p>
+                                                    <div class="timesLike">
+                                                        <p class="ctime">${reply.time}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('');
+                            }
+
+                            function renderComment(comment) {
+                                let html = `
+                                    <div class="xijie" data-idcomments="${comment.idcomments}" data-userid="${comment.id_user}" data-parent-id="">
                                         <image class="avatar1" src=${comment.avatar}></image>
                                         <div class="exceptA">
                                             <div class='author-container'>
-                                                <a href="javascript:;" class="name">${comment.name}</a>
+                                                <a href="javascript:;" class="name" data-userid="${comment.id_user}">${comment.name}</a>
                                             </div>
                                             <div class="information"></div>
                                             <p class="words">${comment.content}</p>
@@ -869,18 +910,62 @@ document.addEventListener('DOMContentLoaded', async () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="reply-container"></div>
-                                `).join('');
+                                    <div class="reply-container" style="margin-left:32px;">
+                                        ${renderReplies(comment.idcomments)}
+                                    </div>
+                                `;
+                                return html;
                             }
-                            
+
+                            if (comments.length === 0) {
+                                otherComments.innerHTML = '<div class="empty-comment">抢个沙发吧</div>';
+                            } else {
+                                otherComments.innerHTML = rootComments.map(renderComment).join('');
+                            }
+
+                            // 3. 绑定点击事件
+                            const commentItems = otherComments.querySelectorAll('.xijie');
+                            commentItems.forEach(item => {
+                                item.addEventListener('click', function(e) {
+                                    e.stopPropagation();
+                                    const commentId = this.dataset.idcomments;
+                                    const commentName = this.querySelector('.name').textContent;
+                                    const commentUserId = this.dataset.userid;
+                                    const parentId = this.dataset.parentId;
+
+                                    const textarea = cmt.querySelector('textarea');
+                                    // 判断是回复评论还是回复回复
+                                    if (parentId) {
+                                        // 回复的是回复
+                                        textarea.placeholder = `回复 ${commentName}：`;
+                                        textarea.dataset.parentId = parentId;
+                                        textarea.dataset.parentUserId = commentUserId;
+                                    } else {
+                                        // 回复的是评论
+                                        textarea.placeholder = `回复 ${commentName}：`;
+                                        textarea.dataset.parentId = commentId;
+                                        textarea.dataset.parentUserId = commentUserId;
+                                    }
+                                    textarea.focus();
+                                });
+                            });
+
                             // 设置评论提交按钮事件
                             const submitBtn = cmt.querySelector('.submitComment');
                             const textarea = cmt.querySelector('textarea');
                             
+                            // 检查登录状态
                             if (!localStorage.getItem('eleToken')) {
-                                textarea.placeholder = '请先登录';
+                                textarea.placeholder = '请先登录后再评论';
                                 submitBtn.disabled = true;
+                                submitBtn.style.cursor = 'not-allowed';
+                                submitBtn.style.opacity = '0.6';
                             } else {
+                                textarea.placeholder = '说点什么吧...';
+                                submitBtn.disabled = false;
+                                submitBtn.style.cursor = 'pointer';
+                                submitBtn.style.opacity = '1';
+                                
                                 submitBtn.onclick = async () => {
                                     const content = textarea.value.trim();
                                     if (!content) {
@@ -889,13 +974,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     }
                                     
                                     try {
-                                        const res = await axios.post('/api/posts/comments', {
+                                        const commentData = {
                                             name: userData.name,
                                             avatar: userData.avatar,
                                             content: content,
                                             id_user: userData.id_user,
                                             id_from_post: postId
-                                        });
+                                        };
+
+                                        if (textarea.dataset.parentId) {
+                                            commentData.parent_id = textarea.dataset.parentId;
+                                            console.log('发送回复，parent_id:', commentData.parent_id);
+                                        }
+                                        if (textarea.dataset.parentUserId) {
+                                            commentData.parent_user_id = textarea.dataset.parentUserId;
+                                            console.log('发送回复，parent_user_id:', commentData.parent_user_id);
+                                        }
+
+                                        const res = await axios.post('/api/posts/comments', commentData);
                                         
                                         if (res.data && res.data.success) {
                                             success_alert.style.display = 'block';
@@ -906,24 +1002,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                                             
                                             // 添加新评论到列表
                                             const newComment = document.createElement('div');
-                                            newComment.innerHTML = `
-                                                <div class="xijie">
-                                                    <img class="avatar1" src="${userData.avatar}">
-                                                    <div class="exceptA">
-                                                        <div class='author-container'>
-                                                            <a href="javascript:;" class="name">${userData.name}</a>
-                                                        </div>
-                                                        <div class="information"></div>
-                                                        <p class="words">${content}</p>
-                                                        <div class="timesLike">
-                                                            <p class="ctime">刚刚</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="reply-container"></div>
-                                            `;
+                                            newComment.innerHTML = renderComment(res.data);
                                             otherComments.insertBefore(newComment, otherComments.firstChild);
                                             textarea.value = '';
+                                            textarea.placeholder = '说点什么吧...';
+                                            delete textarea.dataset.parentId;
+                                            delete textarea.dataset.parentUserId;
                                         }
                                     } catch (error) {
                                         console.error('评论提交失败:', error);

@@ -84,30 +84,44 @@ router.get('/:postId/comments',(req,res)=>{
     })
 })
 
-//发布评论
-router.post('/comments',passport.authenticate('jwt',{session:false}),(req,res)=>{
-    const addComment={}
-    if(req.body.name) addComment.name = req.body.name
-    if(req.body.content) addComment.content = req.body.content
-    if(req.body.avatar) addComment.avatar = req.body.avatar
-    if(req.body.id_from_post) addComment.id_from_post = req.body.id_from_post
-    if(req.body.id_user) addComment.id_user = req.body.id_user
+//发布评论/回复
+router.post('/comments', passport.authenticate('jwt', { session: false }), (req, res) => {
+    const addComment = {};
+    if (req.body.name) addComment.name = req.body.name;
+    if (req.body.content) addComment.content = req.body.content;
+    if (req.body.avatar) addComment.avatar = req.body.avatar;
+    if (req.body.id_from_post) addComment.id_from_post = req.body.id_from_post;
+    if (req.body.id_user) addComment.id_user = req.body.id_user;
+    addComment.parent_id = req.body.parent_id || null;
+    addComment.parent_user_id = req.body.parent_user_id || null;
 
-    const sqlInsert = 'insert into comments (name,content,avatar,id_from_post,id_user) values (?,?,?,?,?)'
-    db.query(sqlInsert,[addComment.name,addComment.content,addComment.avatar,addComment.id_from_post,addComment.id_user],(err,result)=>{
-        if(err) {
+    const sqlInsert = 'insert into comments (name, content, avatar, id_from_post, id_user, parent_id, parent_user_id) values (?, ?, ?, ?, ?, ?, ?)';
+    db.query(sqlInsert, [addComment.name, addComment.content, addComment.avatar, addComment.id_from_post, addComment.id_user, addComment.parent_id, addComment.parent_user_id], (err, result) => {
+        if (err) {
             console.log(err.message)
             return res.status(500).json(err.message)
         }
-        if(result.affectedRows === 1){
-            return res.json({
-                success: true,
-                message: '添加成功'
-            })
+        if (result.affectedRows === 1) {
+            // 新增：插入成功后查出完整评论对象返回
+            const newId = result.insertId;
+            db.query('select * from comments where idcomments=?', [newId], (err2, rows) => {
+                if (err2) {
+                    return res.status(500).json(err2.message);
+                }
+                if (rows.length > 0) {
+                    // 返回新评论对象
+                    return res.json({
+                        success: true,
+                        ...rows[0], // 展开所有字段
+                        replies: []
+                    });
+                } else {
+                    return res.json({ success: true, message: '添加成功，但未查到新评论' });
+                }
+            });
         }
-    })
-
-})
+    });
+});
 
 //收藏
 router.post('/addCollect',passport.authenticate('jwt',{session:false}),(req,res)=>{

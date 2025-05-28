@@ -102,6 +102,17 @@ axios.interceptors.response.use(
             return Promise.reject(error.response.data || '请求失败');
         }
         
+        if (error.response && error.response.status === 401) {
+            // token失效
+            if (confirm('token失效，请重新登录哦')) {
+                // 清除本地存储的token和用户信息
+                localStorage.removeItem('eleToken');
+                localStorage.removeItem('user_data');
+                // 跳转到登录页面
+                window.location.href = '/login';
+            }
+        }
+        
         return Promise.reject(error);
     }
 );

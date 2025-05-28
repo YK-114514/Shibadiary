@@ -128,11 +128,11 @@ html body{
 
 .menu {
     position: fixed;
-    top: 85px;
+    top: 105px;
     left: 0;
     width: 220px;
     min-height: 400px;
-    background: #fffdfa;
+    background: linear-gradient(145deg, #fff9f0, #fff5e6);
     border-radius: 18px;
     box-shadow: 0 6px 32px rgba(198,131,23,0.10), 0 1.5px 6px rgba(0,0,0,0.06);
     border: 1.5px solid #f7e7c6;
@@ -240,16 +240,17 @@ html body{
 }
 
 .content .content-next .mulu-top{
-    background: white;
+    background: linear-gradient(145deg, #fff9f0, #fff5e6);
     border-radius: 16px;
     padding: 20px;
     margin-bottom: 20px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     transition: box-shadow 0.3s;
+    border: 2px solid #ffd9aa;
 }
 .content .content-next .mulu-top:hover{
-    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-
+    box-shadow: 0 6px 16px rgba(255, 217, 170, 0.2);
+    
 }
 .content .content-next .mulu{
     display: flex;
@@ -292,6 +293,7 @@ html body{
 .content .content-next .mulu .list .divide_row .uname {
     text-decoration: none;
     font-size:18px;
+    font-weight: bold;
     color:#c68317;
     transition: transform 0.25s cubic-bezier(.4,0,.2,1), color 0.2s;
 }
@@ -304,6 +306,7 @@ html body{
     width:650px;
     margin-top:30px;
    overflow: auto;
+   margin-bottom:30px;
    
     
 }
@@ -345,7 +348,7 @@ margin-top:30px;
 
 .content .content-next .mulu .list .last .others a {
     display: inline-block;
-    background: #fff;
+    background: #fcf9f4;
     border-radius: 10px;
     box-shadow: 0 0.5px 4px #ccc;
     margin: 0 5px;
@@ -386,13 +389,11 @@ margin-top:30px;
 }
 
 .content .content-next .comments {
-    max-width: 800px;
-    margin: 50px auto 30px auto; /* 上中下的间距+水平居中 */
-    background-color: #e6e6e6;
-    border-radius: 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    padding: 24px 24px 16px 24px;
-    border: 1px solid #e0e0e0;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 .content .content-next .comments #my{
     background-color: white;
@@ -970,4 +971,27 @@ nav[aria-label="Page navigation"] {
 
 .post-image:hover {
     transform: scale(1.02);
+}
+
+.content .content-next .comments .otherComments .empty-comment {
+    text-align: center;
+    padding: 40px 0;
+    color: #c68317;
+    font-size: 16px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
+    margin: 10px 40px;
+    border: 1px dashed #e6cfa4;
+    font-style: italic;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(198, 131, 23, 0.05);
+    width: calc(100% - 120px);
+}
+
+.content .content-next .comments .otherComments .empty-comment::before {
+    content: "💭";
+    display: block;
+    font-size: 28px;
+    margin-bottom: 12px;
+    opacity: 0.8;
 }
