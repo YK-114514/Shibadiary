@@ -39,7 +39,7 @@ router.get('/personal', (req, res) => {
 router.get('/', (req, res) => {
   res.redirect('/index');
 });
-router.get(['/index', '/index/post', '/index/ask', '/index/friends', '/index/collect'], (req, res) => {
+router.get(['/index', '/index/post', '/index/ask', '/index/friend', '/index/collect'], (req, res) => {
   const filePath = path.join(__dirname, '../front-end/views/index.html');
   res.sendFile(filePath, (err) => {
     if (err) {
@@ -61,6 +61,27 @@ router.get('/accounts', (req, res) => {
   });
 });
 
+router.get('/message', (req, res) => {
+  const filePath = path.join(__dirname, '../front-end/views/message.html');
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('文件发送错误:', err);
+      console.log('尝试访问的文件路径:', filePath);
+      res.status(500).send('无法加载消息中心页面');
+    }
+  });
+});
 
+// 帖子详情页路由
+router.get('/post/:id', (req, res) => {
+  const filePath = path.join(__dirname, '../front-end/views/specific.html');
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('文件发送错误:', err);
+      console.log('尝试访问的文件路径:', filePath);
+      res.status(500).send('无法加载帖子详情页');
+    }
+  });
+});
 
 module.exports = router;

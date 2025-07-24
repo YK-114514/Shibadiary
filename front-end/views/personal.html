@@ -124,8 +124,52 @@
         })
     }
 
+    // 检查未读消息数量并更新红点状态
+    async function checkUnreadMessages() {
+        try {
+            const token = localStorage.getItem('eleToken');
+            if (!token) {
+                // 未登录，隐藏红点
+                const messageDot = document.querySelector('.message-dot');
+                if (messageDot) {
+                    messageDot.style.display = 'none';
+                }
+                return;
+            }
+
+            const response = await axios.get('/api/message', {
+                headers: {
+                    'Authorization': token
+                }
+            });
+
+            if (response.data.success) {
+                const unreadCount = response.data.unreadCount;
+                const messageDot = document.querySelector('.message-dot');
+                
+                if (messageDot) {
+                    if (unreadCount > 0) {
+                        messageDot.style.display = 'inline-block';
+                    } else {
+                        messageDot.style.display = 'none';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('检查未读消息失败:', error);
+            // 出错时隐藏红点
+            const messageDot = document.querySelector('.message-dot');
+            if (messageDot) {
+                messageDot.style.display = 'none';
+            }
+        }
+    }
+
     // 页面加载完成后执行
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 检查未读消息并更新红点状态
+        await checkUnreadMessages();
+        
         getPersonal()
     })
 </script>

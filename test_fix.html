@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试修复</title>
+</head>
+<body>
+    <h1>修复测试</h1>
+    <p>如果您看到这个页面，说明修复成功了！</p>
+    <p>现在可以回到主页测试点赞功能了。</p>
+    <a href="/index">返回主页</a>
+    
+    <script>
+        console.log('测试页面加载成功');
+        // 测试target变量是否正确定义
+        document.addEventListener('click', function(e) {
+            const target = e.target;
+            console.log('点击事件正常，target:', target);
+        });
+    </script>
+</body>
+</html> 

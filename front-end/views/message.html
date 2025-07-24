@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>消息中心</title>
+        <link rel="stylesheet" href="../css/message.css">
+        <link rel="stylesheet" href="../css/index.css">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script src="../http.js"></script>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+    </head>
+<body>
+    <!--header-->
+<div class="father">
+    
+    <div class='header'>
+       <div class="header-next">
+        <a href="/index" class="index">
+            <image class="logo" src="../images/logo.png"></image>
+            <image class="title" src="../images/title.png"></image>
+            </a>
+            <ul class="topics">
+                <li><a href="/index" class="active" data-id="1">宠物博客</a></li>
+                <li><a data-id="2">宠物问答</a></li>
+            </ul>
+            <div class="login-header">
+                <a href="/login" class="before-login">登录</a>
+                <a href="javascript:;" class="user-menu" style="display:none">欢迎，<span class="username"></span></a>
+                <div class="user-dropdown">
+                    <a href="/personal">个人信息</a>
+                    <a href="/message">消息中心<span class="message-dot"></span></a>
+                    <a href="javascript:;">我的私信</a>
+                    <a href="javascript:;" id="logout">退出登录</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="message-header-bar">
+            <h2>消息中心</h2>
+            <div class="message-actions">
+                <button class="btn btn-outline-primary btn-sm" id="markAllRead">
+                    <i class="bi bi-check-all"></i> 全部标记已读
+                </button>
+                <span class="unread-count" id="unreadCount">0</span>
+            </div>
+        </div>
+
+        <div class="message-list" id="messageList">
+            <!-- 消息列表将通过JavaScript动态加载 -->
+            <div class="loading-message">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+                <p>正在加载消息...</p>
+            </div>
+        </div>
+
+        <div class="no-messages" id="noMessages" style="display: none;">
+            <div class="text-center">
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <h4 class="mt-3">暂无消息</h4>
+                <p class="text-muted">当有人点赞、收藏或评论你的帖子时，消息会显示在这里</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 检查登录状态
+function checkLoginStatus() {
+    const token = localStorage.getItem('eleToken');
+    const userData = localStorage.getItem('user_data');
+    
+    if (token && userData) {
+        document.querySelector('.before-login').style.display = 'none';
+        document.querySelector('.user-menu').style.display = 'inline-block';
+        
+        const user = JSON.parse(userData);
+        document.querySelector('.username').textContent = user.name;
+        
+        // 加载消息列表
+        loadMessages();
+    } else {
+        // 未登录，跳转到登录页面
+        window.location.href = '/login';
+    }
+}
+
+// 加载消息列表
+async function loadMessages() {
+    try {
+        const response = await axios.get('/api/message');
+        
+        if (response.data.success) {
+            const messages = response.data.messages;
+            const unreadCount = response.data.unreadCount;
+            
+            // 更新未读消息数量
+            updateUnreadCount(unreadCount);
+            
+            // 渲染消息列表
+            renderMessages(messages);
+        } else {
+            showError('获取消息失败');
+        }
+    } catch (error) {
+        console.error('加载消息失败:', error);
+        if (error.response && error.response.status === 401) {
+            // 未授权，跳转到登录页面
+            window.location.href = '/login';
+        } else {
+            showError('获取消息失败，请重试');
+        }
+    }
+}
+
+// 渲染消息列表
+function renderMessages(messages) {
+    const messageList = document.getElementById('messageList');
+    const noMessages = document.getElementById('noMessages');
+    
+    if (messages.length === 0) {
+        messageList.style.display = 'none';
+        noMessages.style.display = 'block';
+        return;
+    }
+    
+    messageList.style.display = 'block';
+    noMessages.style.display = 'none';
+    
+    messageList.innerHTML = messages.map(message => `
+        <div class="message-item ${!message.isread ? 'unread' : ''}" data-message-id="${message.id}">
+            <div class="message-header">
+                <div class="message-info">
+                    <div class="message-title">
+                        <i class="bi ${getMessageIcon(message.type)}"></i>
+                        ${message.type}
+                    </div>
+                    <div class="message-time">${formatTime(message.time)}</div>
+                </div>
+                <div class="message-actions">
+                    <button class="btn btn-sm btn-outline-danger delete-message" data-message-id="${message.id}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="message-content">
+                <div class="message-text">${message.content}</div>
+                ${message.post_content ? `
+                    <div class="message-post">
+                        <div class="post-content">${message.post_content}</div>
+                        ${message.post_images && message.post_images.length > 0 ? `
+                            <div class="post-images">
+                                ${message.post_images.slice(0, 3).map(img => `
+                                    <img src="${img}" alt="帖子图片" class="post-image">
+                                `).join('')}
+                                ${message.post_images.length > 3 ? `<span class="more-images">+${message.post_images.length - 3}</span>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    // 添加事件监听器
+    addMessageEventListeners();
+}
+
+// 获取消息图标
+function getMessageIcon(type) {
+    switch (type) {
+        case '点赞通知':
+            return 'bi-heart-fill text-danger';
+        case '收藏通知':
+            return 'bi-star-fill text-warning';
+        case '评论通知':
+            return 'bi-chat-fill text-primary';
+        default:
+            return 'bi-bell-fill text-info';
+    }
+}
+
+// 格式化时间
+function formatTime(timeString) {
+    const date = new Date(timeString);
+    const now = new Date();
+    const diff = now - date;
+    
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (minutes < 1) return '刚刚';
+    if (minutes < 60) return `${minutes}分钟前`;
+    if (hours < 24) return `${hours}小时前`;
+    if (days < 7) return `${days}天前`;
+    
+    return date.toLocaleDateString('zh-CN');
+}
+
+// 更新未读消息数量
+function updateUnreadCount(count) {
+    const unreadCountElement = document.getElementById('unreadCount');
+    const messageDot = document.querySelector('.message-dot');
+    
+    if (count > 0) {
+        unreadCountElement.textContent = count;
+        unreadCountElement.style.display = 'inline-block';
+        if (messageDot) messageDot.style.display = 'inline-block';
+    } else {
+        unreadCountElement.style.display = 'none';
+        if (messageDot) messageDot.style.display = 'none';
+    }
+}
+
+// 添加消息事件监听器
+function addMessageEventListeners() {
+    // 消息点击事件（标记已读）
+    document.querySelectorAll('.message-item').forEach(item => {
+        item.addEventListener('click', async function(e) {
+            // 如果点击的是删除按钮，不处理
+            if (e.target.closest('.delete-message')) {
+                return;
+            }
+            
+            const messageId = this.dataset.messageId;
+            if (!this.classList.contains('unread')) return;
+            
+            try {
+                await axios.put(`/api/message/${messageId}/read`);
+                this.classList.remove('unread');
+                
+                // 更新未读数量
+                const unreadItems = document.querySelectorAll('.message-item.unread');
+                updateUnreadCount(unreadItems.length);
+                
+                // 如果没有未读消息了，隐藏红点
+                if (unreadItems.length === 0) {
+                    const messageDot = document.querySelector('.message-dot');
+                    if (messageDot) {
+                        messageDot.style.display = 'none';
+                    }
+                }
+                
+            } catch (error) {
+                console.error('标记已读失败:', error);
+            }
+        });
+    });
+    
+    // 删除消息事件
+    document.querySelectorAll('.delete-message').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            
+            const messageId = this.dataset.messageId;
+            if (!confirm('确定要删除这条消息吗？')) return;
+            
+            try {
+                await axios.delete(`/api/message/${messageId}`);
+                const messageItem = this.closest('.message-item');
+                messageItem.remove();
+                
+                // 检查是否还有消息
+                const remainingMessages = document.querySelectorAll('.message-item');
+                if (remainingMessages.length === 0) {
+                    document.getElementById('messageList').style.display = 'none';
+                    document.getElementById('noMessages').style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('删除消息失败:', error);
+                showError('删除失败，请重试');
+            }
+        });
+    });
+}
+
+// 标记所有消息为已读
+document.getElementById('markAllRead').addEventListener('click', async function() {
+    try {
+        await axios.put('/api/message/read-all');
+        
+        // 移除所有未读状态
+        document.querySelectorAll('.message-item.unread').forEach(item => {
+            item.classList.remove('unread');
+        });
+        
+        // 更新未读数量
+        updateUnreadCount(0);
+        
+        // 隐藏红点
+        const messageDot = document.querySelector('.message-dot');
+        if (messageDot) {
+            messageDot.style.display = 'none';
+        }
+        
+        showSuccess('全部标记已读成功');
+        
+    } catch (error) {
+        console.error('标记全部已读失败:', error);
+        showError('操作失败，请重试');
+    }
+});
+
+// 显示成功消息
+function showSuccess(message) {
+    // 可以添加一个简单的提示
+    alert(message);
+}
+
+// 显示错误消息
+function showError(message) {
+    // 可以添加一个简单的提示
+    alert(message);
+}
+
+// 页面加载时检查登录状态
+document.addEventListener('DOMContentLoaded', checkLoginStatus);
+</script>
+</body>
+</html> 
