@@ -331,7 +331,7 @@
     <!--header-->
     <div class="father">
         <div class='header'>
-            <div class="header-next">
+            <div class="header-next" href="/index">
                 <image class="logo" src="../images/logo.png"></image>
                 <image class="title" src="../images/title.png"></image>
                 <ul class="topics">
@@ -448,6 +448,17 @@
                 const res = await axios.get(`/api/posts/${postId}`);
                 const post = res.data;
                 
+                // 获取用户的关注数和粉丝数
+                let userFollowing = 0;
+                let userFollowers = 0;
+                try {
+                    const userRes = await axios.get(`/api/accounts/${post.id_user}/accounts`);
+                    userFollowing = userRes.data.following || 0;
+                    userFollowers = userRes.data.followers || 0;
+                } catch (error) {
+                    console.error('获取用户关注数据失败:', error);
+                }
+                
                 const formatted = new Date(post.time).toLocaleString('zh-CN', {
                     year: 'numeric',
                     month: '2-digit',
@@ -489,6 +500,16 @@
                             <img class="post-avatar" src="${post.avatar}" alt="头像">
                             <div class="post-author-info">
                                 <a href="javascript:;" class="post-author-name" data-userid="${post.id_user}">${post.name}</a>
+                                <div class="information">
+                                    <div class="divide">
+                                        <image class="touxiang" src="${post.avatar}"></image>
+                                        <p class="name">${post.name}</p>
+                                    </div>
+                                    <div class="people">
+                                        <p>关注: ${userFollowing}</p>
+                                        <p>粉丝: ${userFollowers}</p>
+                                    </div>
+                                </div>
                                 <div class="post-time">${formatted}</div>
                             </div>
                         </div>
@@ -591,11 +612,19 @@
                             if (reply.parent_id && reply.parent_user_name && commentMap[reply.parent_id] && commentMap[reply.parent_id].parent_id) {
                                 showName = `${reply.name} 回复 ${reply.parent_user_name}`;
                             }
+                            
+                            // 检查是否为当前用户的评论
+                            const isCurrentUser = userData && reply.id_user == userData.id_user;
+                            const deleteBtn = isCurrentUser ? `<button class="delete-comment-btn" data-comment-id="${reply.idcomments}"><i class="bi bi-trash"></i></button>` : '';
+                            
                             return `
                                 <div class="comment-item" data-idcomments="${reply.idcomments}" data-userid="${reply.id_user}" data-parent-id="${reply.parent_id}">
                                     <img class="comment-avatar" src="${reply.avatar}" alt="头像">
                                     <div class="comment-content">
-                                        <div class="comment-author">${showName}</div>
+                                        <div class="comment-author">
+                                            ${showName}
+                                            ${deleteBtn}
+                                        </div>
                                         <div class="comment-text">${reply.content}</div>
                                         <div class="comment-meta">
                                             <span class="comment-time">${reply.time}</span>
@@ -609,11 +638,18 @@
 
                 // 渲染评论
                 function renderComment(comment) {
+                    // 检查是否为当前用户的评论
+                    const isCurrentUser = userData && comment.id_user == userData.id_user;
+                    const deleteBtn = isCurrentUser ? `<button class="delete-comment-btn" data-comment-id="${comment.idcomments}"><i class="bi bi-trash"></i></button>` : '';
+                    
                     return `
                         <div class="comment-item" data-idcomments="${comment.idcomments}" data-userid="${comment.id_user}" data-parent-id="">
                             <img class="comment-avatar" src="${comment.avatar}" alt="头像">
                             <div class="comment-content">
-                                <div class="comment-author">${comment.name}</div>
+                                <div class="comment-author">
+                                    ${comment.name}
+                                    ${deleteBtn}
+                                </div>
                                 <div class="comment-text">${comment.content}</div>
                                 <div class="comment-meta">
                                     <span class="comment-time">${comment.time}</span>
@@ -628,6 +664,40 @@
                 }
 
                 commentsList.innerHTML = rootComments.map(renderComment).join('');
+
+                // 绑定删除评论按钮事件
+                const deleteCommentBtns = commentsList.querySelectorAll('.delete-comment-btn');
+                deleteCommentBtns.forEach(btn => {
+                    btn.addEventListener('click', async function(e) {
+                        e.stopPropagation();
+                        const commentId = this.dataset.commentId;
+                        
+                        console.log('详情页点击删除按钮，评论ID:', commentId);
+                        console.log('当前用户数据:', userData);
+                        
+                        if (confirm('确定要删除这条评论吗？')) {
+                            try {
+                                console.log('发送删除请求到:', `/api/posts/comments/${commentId}`);
+                                const res = await axios.delete(`/api/posts/comments/${commentId}`);
+                                console.log('删除响应:', res.data);
+                                
+                                if (res.data.success) {
+                                    console.log('删除成功，重新加载评论');
+                                    // 删除成功，重新加载评论
+                                    loadComments(postId);
+                                    alert('删除成功');
+                                } else {
+                                    console.log('删除失败:', res.data.message);
+                                    alert(res.data.message || '删除失败');
+                                }
+                            } catch (error) {
+                                console.error('删除评论失败:', error);
+                                console.error('错误详情:', error.response?.data);
+                                alert('删除失败，请重试');
+                            }
+                        }
+                    });
+                });
 
                 // 设置评论提交功能
                 const submitBtn = document.querySelector('.submit-comment-btn');
@@ -802,6 +872,25 @@
         // 页面加载完成后执行
         document.addEventListener('DOMContentLoaded', () => {
             loadPostDetail();
+            
+            // 添加用户名悬停事件处理
+            document.addEventListener('mouseover', function(e) {
+                if (e.target.classList.contains('post-author-name')) {
+                    const information = e.target.nextElementSibling;
+                    if (information && information.classList.contains('information')) {
+                        information.classList.add('active');
+                    }
+                }
+            });
+
+            document.addEventListener('mouseout', function(e) {
+                if (e.target.classList.contains('post-author-name')) {
+                    const information = e.target.nextElementSibling;
+                    if (information && information.classList.contains('information')) {
+                        information.classList.remove('active');
+                    }
+                }
+            });
         });
     </script>
 </body>

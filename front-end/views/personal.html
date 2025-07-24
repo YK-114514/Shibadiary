@@ -5,11 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link rel="stylesheet" href="../css/personal.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="../http.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Zhi+Mang+Xing&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
 </head>
 <body>
     <div class="header">
@@ -33,6 +35,25 @@
     <div class="content-container">
         <ul class="content"></ul>
     </div>
+    
+    <!-- 分页控件 -->
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item">
+                <a class="page-link" href="javascript:;" id="prevPage" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <span class="page-link" id="currentPageInfo">第 1 页 / 共 1 页</span>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="javascript:;" id="nextPage" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
 </body>
 </html>
 
@@ -43,29 +64,178 @@
     const statsElement = document.querySelector('.stats')
     const content = document.querySelector('.content')
 
+    // 分页相关DOM元素
+    const currentPageInfo = document.getElementById('currentPageInfo')
+    const prevPageBtn = document.getElementById('prevPage')
+    const nextPageBtn = document.getElementById('nextPage')
+
     // 获取个人信息localStorage
     const userD = localStorage.getItem('user_data')
-    const user_data = JSON.parse(userD)
+    let user_data = null;
+    try {
+        user_data = userD ? JSON.parse(userD) : null;
+    } catch (e) {
+        console.error('解析用户数据失败:', e);
+    }
+
+    // 从数据库获取最新的用户信息
+    async function fetchLatestUserData() {
+        const token = localStorage.getItem('eleToken');
+        if (!token) {
+            console.log('未登录，无法获取用户信息');
+            return null;
+        }
+        
+        try {
+            const response = await axios.get('/api/user/me', {
+                headers: { 'Authorization': token }
+            });
+            
+            if (response.data.success && response.data.user) {
+                const latestUserData = {
+                    id_user: response.data.user.id,
+                    name: response.data.user.name,
+                    avatar: response.data.user.avatar,
+                    phone: response.data.user.phone
+                };
+                
+                // 更新localStorage中的用户数据
+                localStorage.setItem('user_data', JSON.stringify(latestUserData));
+                
+                // 更新全局user_data变量
+                user_data = latestUserData;
+                
+                console.log('已从数据库获取最新用户信息:', latestUserData);
+                return latestUserData;
+            }
+        } catch (error) {
+            console.error('获取用户信息失败:', error);
+            return null;
+        }
+    }
 
     let allData = []
+    let currentPage = 1
+    let totalPages = 1
+    let totalPosts = 0
+    
+            // 监听用户信息更新
+    window.addEventListener('storage', function(e) {
+            if (e.key === 'userUpdate') {
+            try {
+                const updateData = JSON.parse(e.newValue);
+                    console.log('解析的用户信息更新数据:', updateData);
+                    
+                    // 更新头像
+                if (updateData && updateData.avatar) {
+                    updateAllAvatars(updateData.avatar);
+                    }
+                    
+                    // 更新昵称
+                    if (updateData && updateData.nickname) {
+                        const nameElement = document.querySelector('.name');
+                        if (nameElement) {
+                            nameElement.textContent = updateData.nickname;
+                        }
+                    }
+                    
+                    // 从数据库获取最新的用户信息
+                    fetchLatestUserData().then(() => {
+                        // 更新页面上的用户名和头像显示
+                        const nameElement = document.querySelector('.name');
+                        const avatarElement = document.querySelector('.profile');
+                        if (nameElement && user_data) {
+                            nameElement.textContent = user_data.name;
+                        }
+                        if (avatarElement && user_data) {
+                            avatarElement.src = user_data.avatar;
+                        }
+                        console.log('个人页面已更新用户信息显示');
+                    });
+                    
+                    console.log('个人页面收到用户信息更新通知:', updateData);
+            } catch (error) {
+                    console.error('解析用户信息更新数据失败:', error);
+            }
+        }
+    });
+    
+    // 更新所有头像的函数
+    function updateAllAvatars(newAvatarUrl) {
+        console.log('开始更新个人页面头像，新头像URL:', newAvatarUrl);
+        
+        // 更新所有img标签的头像
+        const allImages = document.querySelectorAll('img');
+        let updatedCount = 0;
+        allImages.forEach(img => {
+            // 检查是否是头像图片（更宽松的条件）
+            if (img.src && (
+                img.src.includes('/images/default_avatar.jpg') || 
+                img.src.includes('/images/avatars/') ||
+                img.classList.contains('avatar') ||
+                img.classList.contains('touxiang') ||
+                img.classList.contains('profile')
+            )) {
+                console.log('更新img标签头像:', img.src, '->', newAvatarUrl);
+                // 添加时间戳防止缓存
+                const newUrl = newAvatarUrl + (newAvatarUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+                img.src = newUrl;
+                updatedCount++;
+            }
+        });
+        
+        // 更新所有image标签的头像
+        const allImageElements = document.querySelectorAll('image');
+        allImageElements.forEach(img => {
+            // 检查是否是头像图片（更宽松的条件）
+            if (img.src && (
+                img.src.includes('/images/default_avatar.jpg') || 
+                img.src.includes('/images/avatars/') ||
+                img.classList.contains('avatar') ||
+                img.classList.contains('touxiang') ||
+                img.classList.contains('profile')
+            )) {
+                console.log('更新image标签头像:', img.src, '->', newAvatarUrl);
+                // 添加时间戳防止缓存
+                const newUrl = newAvatarUrl + (newAvatarUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+                img.src = newUrl;
+                updatedCount++;
+            }
+        });
+        
+        console.log('个人页面头像更新完成，共更新了', updatedCount, '个头像');
+    }
 
     // 获取个人数据
-    async function getPersonal() {
+    async function getPersonal(page = 1) {
         try {
-            const res = await axios.get('/api/personal/personal')
+            const res = await axios.get(`/api/personal/personal?page=${page}&limit=5`)
             console.log('API Response:', res.data) // 添加调试日志
 
-            // 直接使用返回的数组数据
-            allData = res.data
+            // 正确使用返回的数据结构
+            allData = res.data.posts || []
 
             // 设置关注数和粉丝数，如果为null则显示0
             const following = res.data.following || 0
             const followers = res.data.followers || 0
             statsElement.innerHTML = `关注: ${following} | 粉丝: ${followers}`
 
+            // 确保使用最新的用户信息
+            const latestUserData = await fetchLatestUserData() || user_data;
+
             // 设置头像和名字
-            nameGet.innerHTML = user_data.name
-            avatarGet.src = user_data.avatar
+            nameGet.innerHTML = latestUserData.name
+            avatarGet.src = latestUserData.avatar
+
+            // 更新分页信息
+            if (res.data.pagination) {
+                currentPage = res.data.pagination.currentPage
+                totalPages = res.data.pagination.totalPages
+                totalPosts = res.data.pagination.totalPosts
+                
+                updatePaginationInfo()
+                updatePaginationControls()
+            }
 
             // 渲染帖子
             renderPosts(allData)
@@ -77,16 +247,46 @@
         }
     }
 
+    // 更新分页信息显示
+    function updatePaginationInfo() {
+        currentPageInfo.textContent = `第 ${currentPage} 页 / 共 ${totalPages} 页`
+    }
+
+    // 更新分页控件状态
+    function updatePaginationControls() {
+        // 更新上一页/下一页按钮状态
+        const prevPageItem = prevPageBtn.parentElement
+        const nextPageItem = nextPageBtn.parentElement
+        
+        if (currentPage <= 1) {
+            prevPageItem.classList.add('disabled')
+        } else {
+            prevPageItem.classList.remove('disabled')
+        }
+        
+        if (currentPage >= totalPages) {
+            nextPageItem.classList.add('disabled')
+        } else {
+            nextPageItem.classList.remove('disabled')
+        }
+    }
+
+    // 跳转到指定页面
+    async function goToPage(page) {
+        if (page < 1 || page > totalPages) return
+        currentPage = page
+        await getPersonal(currentPage)
+    }
+
     // 渲染帖子
     function renderPosts(post_Datas) {
+        content.innerHTML = '' // 清空现有内容
+        
         if (post_Datas.length === 0) {
-            content.innerHTML = '什么也没有哦'
             return
         }
 
-        content.innerHTML = '' // 清空现有内容
-
-        post_Datas.forEach(post => {
+        post_Datas.forEach(async (post) => {
             const formatted = new Date(post.time).toLocaleString('zh-CN', {
                 year: 'numeric',
                 month: '2-digit',
@@ -96,24 +296,67 @@
                 hour12: false
             })
 
+            // 获取用户的关注数和粉丝数
+            let userFollowing = 0;
+            let userFollowers = 0;
+            try {
+                const userRes = await axios.get(`/api/accounts/${post.id_user}/accounts`);
+                userFollowing = userRes.data.following || 0;
+                userFollowers = userRes.data.followers || 0;
+            } catch (error) {
+                console.error('获取用户关注数据失败:', error);
+            }
+
+            // 处理图片
+            let imagesArr = [];
+            try {
+                imagesArr = post.images ? JSON.parse(post.images) : [];
+            } catch(error) {
+                imagesArr = [];
+            }
+            let picturesHtml = '';
+            if (imagesArr.length > 0) {
+                picturesHtml = `<div class="pictures">` +
+                    imagesArr.map(img => `<img src="${img}" class="post-image" loading="lazy">`).join('') +
+                    `</div>`;
+            }
+
+            // 添加删除按钮（因为是自己的帖子）
+            let deleteBtnHtml = '';
+            if (user_data && post.id_user == user_data.id_user) {
+                deleteBtnHtml = `<button class="delete-post-btn" data-id="${post.id}">
+                    <i class="bi bi-trash"></i>
+                </button>`;
+            }
+
             const li = document.createElement('li')
             li.innerHTML = `
-                <div class="mulu-top">
+                <div class="mulu-top" style="position:relative;">
+                    ${deleteBtnHtml}
                     <div class="mulu">
                         <image class="avatar" src=${post.avatar}></image>
                         <div class="list">
                             <div class="divide_row">
-                                <a href="javascript:;" class="uname">${post.name}</a>
+                                <a href="javascript:;" class="uname" data-userid="${post.id_user}">${post.name}</a>
+                                <div class="information">
+                                    <div class="divide">
+                                        <image class="touxiang" src=${post.avatar}></image>
+                                        <p class="name">${post.name}</p>
+                                    </div>
+                                    <div class="people">
+                                        <p>关注: ${userFollowing}</p>
+                                        <p>粉丝: ${userFollowers}</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="information"></div>
                             <p class="sentences">${post.content}</p>
-                            <div class="pictures"></div>
+                            ${picturesHtml}
                             <div class="last">
                                 <p class="time">${formatted}</p>
                                 <div class="others">
-                                    <a href="javascript:;" class="like" data-id="${post.id}">❤0</a>
-                                    <a href="javascript:;" class="collect" data-id="${post.id}">⭐Collects</a>
-                                    <a href='javascript:;' class="say" data-id="${post.id}">🖊Comments</a>
+                                    <a href="javascript:;" class="like" data-id="${post.id}">❤ 0</a>
+                                    <a href="javascript:;" class="collect" data-id="${post.id}">⭐ 收藏</a>
+                                    <a href='javascript:;' class="say" data-id="${post.id}">🖊 评论</a>
                                 </div>
                             </div>
                         </div>
@@ -171,5 +414,142 @@
         await checkUnreadMessages();
         
         getPersonal()
+        
+        // 添加用户名悬停事件处理
+        document.addEventListener('mouseover', function(e) {
+            if (e.target.classList.contains('uname')) {
+                const information = e.target.nextElementSibling;
+                if (information && information.classList.contains('information')) {
+                    information.classList.add('active');
+                }
+            }
+        });
+
+        document.addEventListener('mouseout', function(e) {
+            if (e.target.classList.contains('uname')) {
+                const information = e.target.nextElementSibling;
+                if (information && information.classList.contains('information')) {
+                    information.classList.remove('active');
+                }
+            }
+        });
+
+        // 添加点赞事件处理
+        document.addEventListener('click', async function(e) {
+            if (e.target.classList.contains('like')) {
+                const postId = e.target.dataset.id;
+                const userData = JSON.parse(localStorage.getItem('user_data'));
+                
+                if (!userData) {
+                    alert('请先登录');
+                    return;
+                }
+
+                try {
+                    const response = await axios.post('/api/posts/addLike', {
+                        userid_like: userData.id_user,
+                        id_from_post: postId
+                    });
+
+                    if (response.data.success) {
+                        // 更新点赞显示
+                        const likeCount = e.target.textContent.match(/\d+/);
+                        const currentCount = parseInt(likeCount ? likeCount[0] : 0);
+                        
+                        if (e.target.classList.contains('active')) {
+                            e.target.classList.remove('active');
+                            e.target.innerHTML = `❤ ${currentCount - 1}`;
+                        } else {
+                            e.target.classList.add('active');
+                            e.target.innerHTML = `❤ ${currentCount + 1}`;
+                        }
+                    }
+                } catch (error) {
+                    console.error('点赞失败:', error);
+                }
+            }
+        });
+
+        // 添加收藏事件处理
+        document.addEventListener('click', async function(e) {
+            if (e.target.classList.contains('collect')) {
+                const postId = e.target.dataset.id;
+                const userData = JSON.parse(localStorage.getItem('user_data'));
+                
+                if (!userData) {
+                    alert('请先登录');
+                    return;
+                }
+
+                try {
+                    const response = await axios.post('/api/posts/addCollect', {
+                        userid_collect: userData.id_user,
+                        id_from_post: postId
+                    });
+
+                    if (response.data.success) {
+                        if (e.target.classList.contains('active')) {
+                            e.target.classList.remove('active');
+                            e.target.innerHTML = '⭐ 收藏';
+                        } else {
+                            e.target.classList.add('active');
+                            e.target.innerHTML = '⭐ 已收藏';
+                        }
+                    }
+                } catch (error) {
+                    console.error('收藏失败:', error);
+                }
+            }
+        });
+
+        // 添加删除帖子事件处理
+        document.addEventListener('click', async function(e) {
+            if (e.target.closest('.delete-post-btn')) {
+                const postId = e.target.closest('.delete-post-btn').dataset.id;
+                
+                if (confirm('确定要删除这条帖子吗？')) {
+                    try {
+                        const token = localStorage.getItem('eleToken');
+                        const response = await axios.delete(`/api/posts/${postId}`, {
+                            headers: {
+                                'Authorization': token
+                            }
+                        });
+
+                        if (response.data.code === 0) {
+                            // 删除成功，移除DOM元素
+                            e.target.closest('li').remove();
+                            alert('删除成功');
+                        } else {
+                            alert(response.data.msg || '删除失败');
+                        }
+                    } catch (error) {
+                        console.error('删除帖子失败:', error);
+                        alert('删除失败，请重试');
+                    }
+                }
+            }
+        });
+
+        // 添加评论事件处理
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('say')) {
+                const postId = e.target.dataset.id;
+                window.location.href = `/post-detail/${postId}`;
+            }
+        });
+
+        // 添加分页控件事件处理
+        prevPageBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                goToPage(currentPage - 1);
+            }
+        });
+
+        nextPageBtn.addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                goToPage(currentPage + 1);
+            }
+        });
     })
 </script>

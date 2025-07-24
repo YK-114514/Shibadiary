@@ -119,9 +119,12 @@
                     </div>
                 </div>
                 <div class="search-bar-demo">
-                    <input type="text" class="search-input-demo" placeholder="搜索你感兴趣的内容..." disabled>
-                    <button class="search-btn-demo" disabled>
+                    <input type="text" class="search-input-demo" placeholder="搜索你感兴趣的内容..." id="searchInput">
+                    <button class="search-btn-demo" id="searchBtn">
                         <i class="bi bi-search"></i>
+                    </button>
+                    <button class="clear-btn-demo" id="clearBtn" style="display:none;">
+                        <i class="bi bi-x"></i>
                     </button>
                 </div>
             </div>
@@ -144,7 +147,40 @@
                         </a>
                     </li>
                 </ul>
-            </nav>
+                
+                <!-- 好友功能分页 -->
+                <ul class="pagination justify-content-center" id="friendPagination" style="display: none;">
+                    <li class="page-item">
+                        <a class="page-link" href="javascript:;" id="friendPrevPage" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <span class="page-link" id="friendCurrentPageInfo">第 1 页 / 共 1 页</span>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="javascript:;" id="friendNextPage" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- 收藏功能分页 -->
+                <ul class="pagination justify-content-center" id="collectPagination" style="display: none;">
+                    <li class="page-item">
+                        <a class="page-link" href="javascript:;" id="collectPrevPage" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <span class="page-link" id="collectCurrentPageInfo">第 1 页 / 共 1 页</span>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="javascript:;" id="collectNextPage" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
         </div>
         <!-- 添加图片预览容器 -->
         <div class="image-preview-overlay" style="display: none;">
@@ -154,7 +190,7 @@
 
     <div class="right-sidebar">
         <div class="sidebar-card">
-            <div class="sidebar-title">你想认识的人</div>
+            <div class="sidebar-title">我的关注</div>
             <ul class="sidebar-list">
                 <li>
                     <span class="sidebar-avatar"></span>
@@ -181,6 +217,444 @@
         } catch (e) {
             console.error('解析用户数据失败:', e);
         }
+
+        // 搜索相关变量
+        let searchTimeout = null;
+        let currentSearchKeyword = '';
+        let isSearching = false;
+
+        // 防抖函数
+        function debounce(func, wait) {
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(searchTimeout);
+                    func(...args);
+                };
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(later, wait);
+            };
+        }
+
+        // 关键词高亮函数
+        function highlightKeyword(text, keyword) {
+            if (!keyword || keyword.trim() === '') {
+                return text;
+            }
+            
+            const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        // 懒加载关注列表
+        let allFollowingUsers = [];
+        let currentDisplayIndex = 0;
+        const batchSize = 5; // 每次加载5个用户
+
+        async function loadFollowingList() {
+            if (!userData || !userData.id_user) {
+                console.log('用户未登录，无法加载关注列表');
+                const sidebarList = document.querySelector('.sidebar-list');
+                sidebarList.innerHTML = '<li><span class="sidebar-name">请先登录</span></li>';
+                return;
+            }
+
+            try {
+                const response = await axios.get(`/api/accounts/following/${userData.id_user}`);
+                if (response.data.success) {
+                    const followingList = response.data.data;
+                    const sidebarList = document.querySelector('.sidebar-list');
+                    
+                    // 清空现有内容
+                    sidebarList.innerHTML = '';
+                    
+                    if (followingList.length === 0) {
+                        sidebarList.innerHTML = '<li><span class="sidebar-name">暂无关注</span></li>';
+                        return;
+                    }
+                    
+                    // 使用真实关注用户数据，按最新帖子时间排序（倒序），有新帖子的置顶
+                    allFollowingUsers = [...followingList].sort((a, b) => {
+                        // 首先按是否有新帖子排序（有新帖子的在前）
+                        if (a.hasNewPost && !b.hasNewPost) return -1;
+                        if (!a.hasNewPost && b.hasNewPost) return 1;
+                        
+                        // 如果都有新帖子，按发布时间倒序
+                        if (a.hasNewPost && b.hasNewPost) {
+                            const timeA = new Date(a.latestPostTime).getTime();
+                            const timeB = new Date(b.latestPostTime).getTime();
+                            return timeB - timeA; // 倒序
+                        }
+                        
+                        // 如果都没有新帖子，按用户名排序
+                        const nameA = (a.name || '').toLowerCase();
+                        const nameB = (b.name || '').toLowerCase();
+                        return nameA.localeCompare(nameB, 'zh-CN');
+                    });
+                    
+                    currentDisplayIndex = 0;
+                    
+                    // 初始加载第一批
+                    loadMoreUsers();
+                    
+                    // 设置滚动检测
+                    setupScrollDetection();
+                    
+                    // 动态调整列表高度
+                    adjustSidebarHeight();
+                    
+                    console.log(`成功加载了 ${allFollowingUsers.length} 个关注用户（懒加载模式）`);
+                } else {
+                    console.error('获取关注列表失败:', response.data.message);
+                    const sidebarList = document.querySelector('.sidebar-list');
+                    sidebarList.innerHTML = '<li><span class="sidebar-name">加载失败</span></li>';
+                }
+            } catch (error) {
+                console.error('加载关注列表失败:', error);
+                const sidebarList = document.querySelector('.sidebar-list');
+                sidebarList.innerHTML = '<li><span class="sidebar-name">加载失败</span></li>';
+            }
+        }
+
+        // 加载更多用户
+        function loadMoreUsers() {
+            const sidebarList = document.querySelector('.sidebar-list');
+            
+            // 移除现有的加载更多按钮
+            const existingLoadMore = sidebarList.querySelector('.load-more-item');
+            if (existingLoadMore) {
+                existingLoadMore.remove();
+            }
+            
+            const endIndex = Math.min(currentDisplayIndex + batchSize, allFollowingUsers.length);
+            
+            for (let i = currentDisplayIndex; i < endIndex; i++) {
+                const user = allFollowingUsers[i];
+                const li = document.createElement('li');
+                
+                // 为新帖子的用户添加高亮样式
+                if (user.hasNewPost) {
+                    li.className = 'sidebar-item-new-post';
+                    li.innerHTML = `
+                        <span class="sidebar-avatar" style="background-image: url('${user.avatar || '../images/default_avatar.jpg'}');"></span>
+                        <span class="sidebar-name">${user.name || '未知用户'}</span>
+                        <span class="new-post-indicator">新</span>
+                    `;
+                } else {
+                    li.innerHTML = `
+                        <span class="sidebar-avatar" style="background-image: url('${user.avatar || '../images/default_avatar.jpg'}');"></span>
+                        <span class="sidebar-name">${user.name || '未知用户'}</span>
+                    `;
+                }
+                
+                sidebarList.appendChild(li);
+            }
+            
+            currentDisplayIndex = endIndex;
+            
+            // 如果还有更多用户，添加加载更多按钮
+            if (currentDisplayIndex < allFollowingUsers.length) {
+                const loadMoreLi = document.createElement('li');
+                loadMoreLi.className = 'load-more-item';
+                loadMoreLi.innerHTML = `
+                    <span class="load-more-btn">加载更多...</span>
+                `;
+                loadMoreLi.addEventListener('click', loadMoreUsers);
+                sidebarList.appendChild(loadMoreLi);
+            }
+        }
+
+        // 自动检测滚动到底部并加载更多
+        function setupScrollDetection() {
+            const sidebarList = document.querySelector('.sidebar-list');
+            if (!sidebarList) return;
+            
+            sidebarList.addEventListener('scroll', function() {
+                const { scrollTop, scrollHeight, clientHeight } = this;
+                
+                // 当滚动到距离底部50px时自动加载更多
+                if (scrollHeight - scrollTop - clientHeight < 50) {
+                    if (currentDisplayIndex < allFollowingUsers.length) {
+                        loadMoreUsers();
+                    }
+                }
+            });
+        }
+
+        // 动态调整侧边栏高度
+        function adjustSidebarHeight() {
+            const sidebarCard = document.querySelector('.sidebar-card');
+            const sidebarList = document.querySelector('.sidebar-list');
+            const sidebarTitle = document.querySelector('.sidebar-title');
+            
+            if (!sidebarCard || !sidebarList || !sidebarTitle) return;
+            
+            // 计算可用空间
+            const cardHeight = sidebarCard.offsetHeight;
+            const titleHeight = sidebarTitle.offsetHeight;
+            const padding = 48; // 上下padding的总和
+            const availableHeight = cardHeight - titleHeight - padding;
+            
+            // 设置列表的最大高度
+            sidebarList.style.maxHeight = `${Math.max(200, availableHeight)}px`;
+            
+            console.log(`调整侧边栏高度: 卡片高度=${cardHeight}px, 标题高度=${titleHeight}px, 可用高度=${availableHeight}px`);
+        }
+
+        // 监听用户信息更新
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'userUpdate') {
+                try {
+                    const updateData = JSON.parse(e.newValue);
+                    console.log('收到用户信息更新通知:', updateData);
+                    
+                    // 重新加载关注列表
+                    loadFollowingList();
+                } catch (error) {
+                    console.error('解析用户信息更新数据失败:', error);
+                }
+            }
+        });
+
+        // 监听窗口大小变化，调整侧边栏高度
+        window.addEventListener('resize', function() {
+            adjustSidebarHeight();
+        });
+
+        // 搜索函数
+        async function performSearch(keyword) {
+            console.log('执行搜索，关键词:', keyword);
+            
+            if (!keyword || keyword.trim() === '') {
+                // 如果搜索关键词为空，直接获取所有帖子
+                console.log('搜索关键词为空，获取所有帖子');
+                try {
+                    const response = await axios.get('/api/posts/index');
+                    console.log('获取所有帖子成功，数量:', response.data.length);
+                    const allPosts = response.data;
+                    displaySearchResults(allPosts, '');
+                } catch (error) {
+                    console.error('获取所有帖子失败:', error);
+                    showSearchError('获取帖子失败，请稍后重试');
+                }
+                return;
+            }
+
+            try {
+                isSearching = true;
+                currentSearchKeyword = keyword;
+                
+                // 显示加载状态
+                const contentNext = document.querySelector('.content-next');
+                contentNext.innerHTML = '<div class="search-loading">搜索中...</div>';
+                
+                console.log('发送搜索请求:', `/api/posts/search?keyword=${encodeURIComponent(keyword)}`);
+                const response = await axios.get(`/api/posts/search?keyword=${encodeURIComponent(keyword)}`);
+                
+                console.log('搜索响应:', response.data);
+                
+                if (response.data.success) {
+                    const searchResults = response.data.data;
+                    console.log('搜索结果数量:', searchResults.length);
+                    displaySearchResults(searchResults, keyword);
+                } else {
+                    console.log('搜索失败:', response.data.message);
+                    showSearchError(response.data.message);
+                }
+            } catch (error) {
+                console.error('搜索失败:', error);
+                console.error('错误详情:', error.response?.data);
+                showSearchError('搜索失败，请稍后重试');
+            } finally {
+                isSearching = false;
+            }
+        }
+
+        // 显示搜索结果
+        async function displaySearchResults(results, keyword) {
+            const contentNext = document.querySelector('.content-next');
+            
+            if (results.length === 0) {
+                contentNext.innerHTML = `
+                    <div class="search-status">
+                        没有找到包含"${keyword}"的内容
+                    </div>
+                `;
+                return;
+            }
+
+            // 只有当有关键词时才添加搜索结果统计
+            if (keyword && keyword.trim() !== '') {
+                const searchStats = document.createElement('div');
+                searchStats.className = 'search-stats';
+                searchStats.innerHTML = `
+                    <div class="search-status">
+                        找到 ${results.length} 条包含"${keyword}"的内容
+                    </div>
+                `;
+                contentNext.innerHTML = '';
+                contentNext.appendChild(searchStats);
+            } else {
+                contentNext.innerHTML = '';
+            }
+            
+            for (let i = 0; i < results.length; i++) {
+                const post = results[i];
+                
+                if (post.type === '帖子') {
+                    const formatted = new Date(post.time).toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+
+                    // 获取用户的关注数和粉丝数
+                    let userFollowing = 0;
+                    let userFollowers = 0;
+                    try {
+                        const userRes = await axios.get(`/api/accounts/${post.id_user}/accounts`);
+                        userFollowing = userRes.data.following || 0;
+                        userFollowers = userRes.data.followers || 0;
+                    } catch (error) {
+                        console.error('获取用户关注数据失败:', error);
+                    }
+
+                    // 判断是否为贴主
+                    let deleteBtnHtml = '';
+                    if (userData && post.id_user == userData.id_user) {
+                        deleteBtnHtml = `<button class="btn btn-link btn-sm delete-post-btn" data-id="${post.id}">
+                            <i class="bi bi-trash" style="font-size:20px;color:rgb(207, 185, 137);"></i>
+                        </button>`;
+                    }
+
+                    // 处理图片
+                    let imagesArr = [];
+                    try {
+                        imagesArr = post.images ? JSON.parse(post.images) : [];
+                    } catch(error) {
+                        console.error('解析图片数据失败:', error);
+                        imagesArr = [];
+                    }
+
+                    let picturesHtml = '';
+                    if (imagesArr.length > 0) {
+                        picturesHtml = `<div class="pictures">` +
+                            imagesArr.map(img => `<img src="${img}" class="post-image" loading="lazy">`).join('') +
+                            `</div>`;
+                    }
+
+                    // 高亮用户名和内容
+                    const highlightedName = highlightKeyword(post.name, keyword);
+                    const highlightedContent = highlightKeyword(post.content, keyword);
+
+                    const li = document.createElement('li');
+                    contentNext.appendChild(li);
+           
+                    li.innerHTML = `
+                    <div class="mulu-top" style="position:relative;">
+                    ${deleteBtnHtml}
+                    <div class="mulu">
+                    <image class="avatar" src=${post.avatar}></image>
+                                    <div class="list">
+                                    <div class="divide_row">
+                                        <a href="javascript:;" class="uname" data-userid="${post.id_user}">${highlightedName}</a>
+                                        <div class="information">
+                                            <div class="divide">
+                                                <image class="touxiang" src=${post.avatar}></image>
+                                                <p class="name">${highlightedName}</p>
+                                            </div>
+                                            <div class="people">
+                                                <p>关注: ${userFollowing}</p>
+                                                <p>粉丝: ${userFollowers}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="sentences">${highlightedContent}</p>
+                                    ${picturesHtml}
+                                    <div class="last">
+                                        <p class="time">${formatted}</p>
+                                        <div class="others">
+                                            <a href="javascript:;" class="like" data-id="${post.id}">❤ 0</a>
+                                            <a href="javascript:;" class="collect" data-id="${post.id}">⭐ 收藏</a>
+                                            <a href='javascript:;' class="say" data-id="${post.id}">🖊 评论</a>
+                                        </div>
+                                    </div>
+                                    </div>
+                                    </div>
+                                     <div class="comments hidden" data-id="${post.id}">
+                                        <div class="inputComment">
+                                         <textarea id="my" placeholder="说点什么吧..." maxlength="200"></textarea>
+                                         <button class="submitComment">发送</button>
+                                         </div>
+                                                <div class="otherComments"></div>
+                                         </div>
+                                        </div>
+                    `;
+                }
+            }
+        }
+
+        // 显示搜索错误
+        function showSearchError(message) {
+            const contentNext = document.querySelector('.content-next');
+            contentNext.innerHTML = `
+                <div class="search-status">
+                    <div style="color: #dc3545; text-align: center; padding: 20px;">
+                        ${message}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 防抖搜索
+        const debouncedSearch = debounce(performSearch, 500);
+
+        // 搜索事件监听
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const clearBtn = document.getElementById('clearBtn');
+
+            console.log('搜索组件初始化完成');
+
+            searchInput.addEventListener('input', function() {
+                const keyword = this.value.trim();
+                console.log('搜索输入变化:', keyword);
+                if (keyword) { 
+                    clearBtn.style.display = 'block'; 
+                } else { 
+                    clearBtn.style.display = 'none'; 
+                }
+                debouncedSearch(keyword);
+            });
+            
+            searchBtn.addEventListener('click', function() {
+                const keyword = searchInput.value.trim();
+                console.log('搜索按钮点击:', keyword);
+                if (keyword) {
+                    performSearch(keyword);
+                }
+            });
+            
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const keyword = this.value.trim();
+                    console.log('搜索回车键:', keyword);
+                    if (keyword) {
+                        performSearch(keyword);
+                    }
+                }
+            });
+            
+            clearBtn.addEventListener('click', function() {
+                console.log('清除搜索');
+                searchInput.value = '';
+                clearBtn.style.display = 'none';
+                performSearch(''); // 显示所有帖子
+            });
+        });
 
         // 获取header相关元素
         const logining = document.querySelector('.login-header .before-login');
@@ -243,6 +717,43 @@
         //document.addEventListener('DOMContentLoaded', initLoginState);
 
          initLoginState();
+        
+        // 监听头像更新
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'avatarUpdate') {
+                try {
+                    const updateData = JSON.parse(e.newValue);
+                    if (updateData && updateData.avatar) {
+                        updateAllAvatars(updateData.avatar);
+                        console.log('收到头像更新通知:', updateData.avatar);
+                    }
+                } catch (error) {
+                    console.error('解析头像更新数据失败:', error);
+                }
+            }
+        });
+        
+        // 更新所有头像的函数
+        function updateAllAvatars(newAvatarUrl) {
+            // 更新所有img标签的头像
+            const allImages = document.querySelectorAll('img');
+            allImages.forEach(img => {
+                if (img.src.includes('/images/default_avatar.jpg') || img.src.includes('/images/avatars/')) {
+                    img.src = newAvatarUrl;
+                }
+            });
+            
+            // 更新所有image标签的头像
+            const allImageElements = document.querySelectorAll('image');
+            allImageElements.forEach(img => {
+                if (img.src && (img.src.includes('/images/default_avatar.jpg') || img.src.includes('/images/avatars/'))) {
+                    img.src = newAvatarUrl;
+                }
+            });
+            
+            console.log('首页头像已更新为:', newAvatarUrl);
+        }
+        
         // 获取其他必要的元素
         const addingImg = document.querySelector('.adding');
         const forms = document.querySelectorAll('.needs-validation');
@@ -265,15 +776,15 @@
                 switch(page) {
                     case 'post':
                         content.innerHTML = ""
-                        await getPosts('like');
+                        await getPosts(currentSortMode, 1);
                         break;
                     case 'friend':
                         content.innerHTML = ''
-                        await getFriend();
+                        await getFriend(1);
                         break;
                     case 'collect':
                         content.innerHTML = ''
-                        await getCollect()
+                        await getCollect(1)
                         break;
                    
                 }
@@ -298,21 +809,141 @@
 
         //获取全部资料先
         
+        // 晒图（主页面）分页变量
         let allData = []; // 存储所有数据
-       async function getAllData(){
-        try {
-            const res = await axios.get('/api/posts/index');
-            allData = res.data; // 保存数据到全局变量
-            return res.data;  // 返回真正的数据！
-        } catch (error) {
-            console.error('获取数据失败:', error);
-            return []; // 失败时返回空数组
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalPosts = 0;
+        
+        // 好友分页变量
+        let friendCurrentPage = 1;
+        let friendTotalPages = 1;
+        let friendTotalPosts = 0;
+        
+        // 收藏分页变量
+        let collectCurrentPage = 1;
+        let collectTotalPages = 1;
+        let collectTotalPosts = 0;
+        
+        // 当前激活的功能类型
+        let currentActiveFunction = 'post'; // 'post', 'friend', 'collect'
+        
+        // 保存当前的排序状态
+        let currentSortMode = 'like'; // 'like' 或 'time'，默认为'like'（最热）
+        
+        async function getAllData(page = 1){
+            try {
+                const res = await axios.get(`/api/posts/index?page=${page}&limit=5`);
+                console.log('API Response:', res.data);
+                
+                // 更新分页信息
+                if (res.data.pagination) {
+                    currentPage = res.data.pagination.currentPage;
+                    totalPages = res.data.pagination.totalPages;
+                    totalPosts = res.data.pagination.totalPosts;
+                    updatePaginationInfo('post');
+                }
+                
+                allData = res.data.posts || []; // 保存数据到全局变量
+                return res.data.posts || [];  // 返回真正的数据！
+            } catch (error) {
+                console.error('获取数据失败:', error);
+                return []; // 失败时返回空数组
+            }
         }
-       
-       }
-       getAllData().then((allTable)=>{
-        console.log(allTable)
-       })
+        
+        // 更新分页信息显示 - 根据功能类型更新对应的分页信息
+        function updatePaginationInfo(functionType = 'post') {
+            // 隐藏所有分页元素
+            const mainPagination = document.querySelector('.pagination');
+            const friendPagination = document.getElementById('friendPagination');
+            const collectPagination = document.getElementById('collectPagination');
+            
+            if (mainPagination) mainPagination.style.display = 'none';
+            if (friendPagination) friendPagination.style.display = 'none';
+            if (collectPagination) collectPagination.style.display = 'none';
+            
+            let pageInfo, prevBtn, nextBtn;
+            
+            if (functionType === 'post') {
+                // 显示主分页
+                if (mainPagination) mainPagination.style.display = 'flex';
+                
+                pageInfo = document.getElementById('currentPageInfo');
+                prevBtn = document.getElementById('prevPage');
+                nextBtn = document.getElementById('nextPage');
+                
+                if (pageInfo) {
+                    pageInfo.textContent = `第 ${currentPage} 页 / 共 ${totalPages} 页 (共 ${totalPosts} 条)`;
+                }
+                
+                if (prevBtn) {
+                    prevBtn.parentElement.classList.toggle('disabled', currentPage <= 1);
+                }
+                if (nextBtn) {
+                    nextBtn.parentElement.classList.toggle('disabled', currentPage >= totalPages);
+                }
+            } else if (functionType === 'friend') {
+                // 显示好友分页
+                if (friendPagination) friendPagination.style.display = 'flex';
+                
+                pageInfo = document.getElementById('friendCurrentPageInfo');
+                prevBtn = document.getElementById('friendPrevPage');
+                nextBtn = document.getElementById('friendNextPage');
+                
+                if (pageInfo) {
+                    pageInfo.textContent = `第 ${friendCurrentPage} 页 / 共 ${friendTotalPages} 页 (共 ${friendTotalPosts} 条)`;
+                }
+                
+                if (prevBtn) {
+                    prevBtn.parentElement.classList.toggle('disabled', friendCurrentPage <= 1);
+                }
+                if (nextBtn) {
+                    nextBtn.parentElement.classList.toggle('disabled', friendCurrentPage >= friendTotalPages);
+                }
+            } else if (functionType === 'collect') {
+                // 显示收藏分页
+                if (collectPagination) collectPagination.style.display = 'flex';
+                
+                pageInfo = document.getElementById('collectCurrentPageInfo');
+                prevBtn = document.getElementById('collectPrevPage');
+                nextBtn = document.getElementById('collectNextPage');
+                
+                if (pageInfo) {
+                    pageInfo.textContent = `第 ${collectCurrentPage} 页 / 共 ${collectTotalPages} 页 (共 ${collectTotalPosts} 条)`;
+                }
+                
+                if (prevBtn) {
+                    prevBtn.parentElement.classList.toggle('disabled', collectCurrentPage <= 1);
+                }
+                if (nextBtn) {
+                    nextBtn.parentElement.classList.toggle('disabled', collectCurrentPage >= collectTotalPages);
+                }
+            }
+        }
+        
+        // 跳转到指定页面 - 根据当前激活的功能类型
+        async function goToPage(page) {
+            if (currentActiveFunction === 'post') {
+                if (page < 1 || page > totalPages) return;
+                
+                // 根据当前激活的排序按钮决定排序模式
+                let sortMode = 'time'; // 默认时间排序
+                if (likeDesc.classList.contains('active')) {
+                    sortMode = 'like';
+                } else if (timeDesc.classList.contains('active')) {
+                    sortMode = 'time';
+                }
+                
+                await getPosts(sortMode, page);
+            } else if (currentActiveFunction === 'friend') {
+                if (page < 1 || page > friendTotalPages) return;
+                await getFriend(page);
+            } else if (currentActiveFunction === 'collect') {
+                if (page < 1 || page > collectTotalPages) return;
+                await getCollect(page);
+            }
+        }
 
        //按照点赞热度来排序
        let allDataLikeDesc = []
@@ -332,7 +963,17 @@
 
     async function getCollectData(){
         try{
-            const res = await axios.get('/api/posts/collect')
+            const token = localStorage.getItem('eleToken');
+            if (!token) {
+                console.log('未登录，无法获取收藏数据');
+                return [];
+            }
+            
+            const res = await axios.get('/api/posts/collect', {
+                headers: {
+                    'Authorization': token
+                }
+            });
             allCollect = res.data
             
             return(allCollect)
@@ -361,13 +1002,36 @@
     const content = document.querySelector('.content-next')
 
     //然后我们获取热门贴
-    async function getPosts(sortBy) {
+    async function getPosts(sortBy, page = 1) {
+        // 设置当前激活的功能类型
+        currentActiveFunction = 'post';
+        
+        // 更新当前排序状态
+        currentSortMode = sortBy;
+        
         let post_Datas = [];
 
         if (sortBy === 'like') {
-            post_Datas = await getLikeDesc();
+            // 点赞排序时使用分页API
+            try {
+                const res = await axios.get(`/api/posts/indexLike?page=${page}&limit=5`);
+                post_Datas = res.data.posts || [];
+                // 更新分页信息
+                if (res.data.pagination) {
+                    currentPage = res.data.pagination.currentPage;
+                    totalPages = res.data.pagination.totalPages;
+                    totalPosts = res.data.pagination.totalPosts;
+                    updatePaginationInfo('post');
+                }
+            } catch (error) {
+                console.error('获取点赞排序数据失败:', error);
+                post_Datas = [];
+            }
         } else {
-            post_Datas = await getAllData();
+            // 时间排序使用分页API
+            post_Datas = await getAllData(page);
+            // 更新分页信息
+            updatePaginationInfo('post');
         }
         
         content.innerHTML = "";
@@ -382,6 +1046,17 @@
                     minute: '2-digit',
                     hour12: false
                     });
+
+                // 获取用户的关注数和粉丝数
+                let userFollowing = 0;
+                let userFollowers = 0;
+                try {
+                    const userRes = await axios.get(`/api/accounts/${post_Datas[i].id_user}/accounts`);
+                    userFollowing = userRes.data.following || 0;
+                    userFollowers = userRes.data.followers || 0;
+                } catch (error) {
+                    console.error('获取用户关注数据失败:', error);
+                }
 
                 // 判断是否为贴主
                 let deleteBtnHtml = '';
@@ -418,6 +1093,16 @@
                         <div class="list">
                         <div class="divide_row">
                             <a href="javascript:;" class="uname" data-userid="${post_Datas[i].id_user}">${post_Datas[i].name}</a>
+                            <div class="information">
+                                <div class="divide">
+                                    <image class="touxiang" src=${post_Datas[i].avatar}></image>
+                                    <p class="name">${post_Datas[i].name}</p>
+                                </div>
+                                <div class="people">
+                                    <p>关注: ${userFollowing}</p>
+                                    <p>粉丝: ${userFollowers}</p>
+                                </div>
+                            </div>
                               </div>
                             <p class="sentences">${post_Datas[i].content}</p>
                             ${picturesHtml}
@@ -482,7 +1167,8 @@
         if (!likeDesc.classList.contains('active')) {
             likeDesc.classList.add('active')
             timeDesc.classList.remove('active')
-            getPosts('like')  // 刷新为按点赞数
+            currentSortMode = 'like'; // 更新排序状态
+            getPosts('like', 1)  // 添加分页参数
         }
     })
 
@@ -491,7 +1177,8 @@
         if (!timeDesc.classList.contains('active')) {
             timeDesc.classList.add('active')
             likeDesc.classList.remove('active')
-            getPosts('time')  // 刷新为按时间
+            currentSortMode = 'time'; // 更新排序状态
+            getPosts('time', 1)  // 添加分页参数
         }
     })
 
@@ -501,7 +1188,7 @@
      //然后我们获取问答贴
      async function getAsk(){
         
-        const ask_Datas = await getAllData()
+        const ask_Datas = await getAllData(1) // 添加分页参数
         console.log('alldata',ask_Datas)
        
         //let post_Datas = []
@@ -517,9 +1204,17 @@
                     hour12: false
                     });
 
+                // 获取用户的关注数和粉丝数
+                let userFollowing = 0;
+                let userFollowers = 0;
+                try {
+                    const userRes = await axios.get(`/api/accounts/${ask_Datas[i].id_user}/accounts`);
+                    userFollowing = userRes.data.following || 0;
+                    userFollowers = userRes.data.followers || 0;
+                } catch (error) {
+                    console.error('获取用户关注数据失败:', error);
+                }
         
-        
-            ask_Datas.push(allData)
             const content = document.querySelector('.content-next');
         const li = document.createElement(`li`)
         content.appendChild(li)
@@ -532,18 +1227,17 @@
                         <div class="list">
                         <div class="divide_row">
                             <a href="javascript:;" class="uname" data-userid="${ask_Datas[i].id_user}">${ask_Datas[i].name}</a>
-                            
+                            <div class="information">
+                                <div class="divide">
+                                    <image class="touxiang" src=${ask_Datas[i].avatar}></image>
+                                    <p class="name">${ask_Datas[i].name}</p>
+                                </div>
+                                <div class="people">
+                                    <p>关注: ${userFollowing}</p>
+                                    <p>粉丝: ${userFollowers}</p>
+                                </div>
+                            </div>
                               </div>
-                             <div class="information">
-                      
-                <div class="divide">
-                <image class="touxiang" src=${ask_Datas[i].avatar}></image>
-                <p class="name">${ask_Datas[i].name}</p>
-                <i class="bi bi-trash" style = "display:none"></i>
-                </div>
-               
-                
-                </div>
                             <p class="sentences">${ask_Datas[i].content}</p>
                             <div class="pictures">
                             
@@ -574,7 +1268,10 @@
 
     
 
-    async function getCollect() {
+    async function getCollect(page = 1) {
+        // 设置当前激活的功能类型
+        currentActiveFunction = 'collect';
+        
         const content = document.querySelector('.content-next');
         content.innerHTML = '';
         if (!userData) {
@@ -584,7 +1281,7 @@
         // 获取所有收藏记录
         const collectData = await getCollectData();
         // 获取所有帖子
-        const allPosts = await getAllData();
+        const allPosts = await getAllData(page); // 添加分页参数
 
         // 只保留当前用户收藏的帖子id
         const myCollectIds = collectData
@@ -593,6 +1290,12 @@
 
         // 过滤出被收藏的帖子
         const collectPosts = allPosts.filter(post => myCollectIds.includes(post.id));
+
+        // 更新收藏分页信息
+        collectCurrentPage = page;
+        collectTotalPages = Math.ceil(collectPosts.length / 5);
+        collectTotalPosts = collectPosts.length;
+        updatePaginationInfo('collect');
 
         if (collectPosts.length === 0) {
             content.innerHTML = '暂无收藏';
@@ -609,6 +1312,17 @@
                 minute: '2-digit',
                 hour12: false
             });
+
+            // 获取用户的关注数和粉丝数
+            let userFollowing = 0;
+            let userFollowers = 0;
+            try {
+                const userRes = await axios.get(`/api/accounts/${post.id_user}/accounts`);
+                userFollowing = userRes.data.following || 0;
+                userFollowers = userRes.data.followers || 0;
+            } catch (error) {
+                console.error('获取用户关注数据失败:', error);
+            }
 
             // 处理图片
             let imagesArr = [];
@@ -634,6 +1348,16 @@
                 <div class="list">
                     <div class="divide_row">
                         <a href="javascript:;" class="uname" data-userid="${post.id_user}">${post.name}</a>
+                        <div class="information">
+                            <div class="divide">
+                                <image class="touxiang" src=${post.avatar}></image>
+                                <p class="name">${post.name}</p>
+                            </div>
+                            <div class="people">
+                                <p>关注: ${userFollowing}</p>
+                                <p>粉丝: ${userFollowers}</p>
+                            </div>
+                        </div>
                     </div>
                     <p class="sentences">${post.content}</p>
                     ${picturesHtml}
@@ -705,6 +1429,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 检查未读消息并更新红点状态
     await checkUnreadMessages();
     
+    // 加载关注列表
+    await loadFollowingList();
+    
     // 获取当前URL路径
     const path = window.location.pathname;
     
@@ -714,8 +1441,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (path.includes('/collect')) {
         await loadContent('collect');
     } else {
-        // 默认加载帖子列表
-        await loadContent('post');
+        // 默认加载帖子列表（最热模式）
+        currentSortMode = 'like'; // 设置默认排序状态
+        likeDesc.classList.add('active'); // 激活最热按钮
+        timeDesc.classList.remove('active'); // 取消最新按钮激活状态
+        await getPosts('like', 1);
     }
     
     // 更新导航栏active状态
@@ -924,12 +1654,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                                             if (reply.parent_id && reply.parent_user_name && commentMap[reply.parent_id] && commentMap[reply.parent_id].parent_id) {
                                                 showName = `${reply.name} 回复 ${reply.parent_user_name}`;
                                             }
+                                            
+                                            // 检查是否为当前用户的评论
+                                            const isCurrentUser = userData && reply.id_user == userData.id_user;
+                                            const deleteBtn = isCurrentUser ? `<button class="delete-comment-btn" data-comment-id="${reply.idcomments}"><i class="bi bi-trash"></i></button>` : '';
+                                            
                                             return `
                                                 <div class="xijie" data-idcomments="${reply.idcomments}" data-userid="${reply.id_user}" data-parent-id="${reply.parent_id}">
                                                     <image class="avatar1" src=${reply.avatar}></image>
                                                     <div class="exceptA">
                                                         <div class='author-container'>
                                                             <a href="javascript:;" class="name" data-userid="${reply.id_user}">${showName}</a>
+                                                            ${deleteBtn}
                                                         </div>
                                                         <div class="information"></div>
                                                         <p class="words">${reply.content}</p>
@@ -943,12 +1679,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 }
 
                                 function renderComment(comment) {
+                                    // 检查是否为当前用户的评论
+                                    const isCurrentUser = userData && comment.id_user == userData.id_user;
+                                    const deleteBtn = isCurrentUser ? `<button class="delete-comment-btn" data-comment-id="${comment.idcomments}"><i class="bi bi-trash"></i></button>` : '';
+                                    
                                     let html = `
                                         <div class="xijie" data-idcomments="${comment.idcomments}" data-userid="${comment.id_user}" data-parent-id="">
                                             <image class="avatar1" src=${comment.avatar}></image>
                                             <div class="exceptA">
                                                 <div class='author-container'>
                                                     <a href="javascript:;" class="name" data-userid="${comment.id_user}">${comment.name}</a>
+                                                    ${deleteBtn}
                                                 </div>
                                                 <div class="information"></div>
                                                 <p class="words">${comment.content}</p>
@@ -994,6 +1735,110 @@ document.addEventListener('DOMContentLoaded', async () => {
                                             textarea.dataset.parentUserId = commentUserId;
                                         }
                                         textarea.focus();
+                                    });
+                                });
+
+                                // 绑定删除评论按钮事件
+                                const deleteCommentBtns = otherComments.querySelectorAll('.delete-comment-btn');
+                                deleteCommentBtns.forEach(btn => {
+                                    btn.addEventListener('click', async function(e) {
+                                        e.stopPropagation();
+                                        const commentId = this.dataset.commentId;
+                                        
+                                        console.log('点击删除按钮，评论ID:', commentId);
+                                        console.log('当前用户数据:', userData);
+                                        
+                                        if (confirm('确定要删除这条评论吗？')) {
+                                            try {
+                                                console.log('发送删除请求到:', `/api/posts/comments/${commentId}`);
+                                                const res = await axios.delete(`/api/posts/comments/${commentId}`);
+                                                console.log('删除响应:', res.data);
+                                                
+                                                if (res.data.success) {
+                                                    console.log('删除成功，开始重新加载评论');
+                                                    // 删除成功，重新加载评论
+                                                    const res = await axios.get(`/api/posts/${postId}/comments`);
+                                                    const comments = res.data;
+                                                    
+                                                    console.log('重新加载的评论数据:', comments);
+                                                    
+                                                    // 重新分组
+                                                    const commentMap = {};
+                                                    const rootComments = [];
+                                                    const flatReplies = [];
+                                                    comments.forEach(comment => {
+                                                        commentMap[comment.idcomments] = comment;
+                                                        if (!comment.parent_id) {
+                                                            rootComments.push(comment);
+                                                        } else {
+                                                            flatReplies.push(comment);
+                                                        }
+                                                    });
+                                                    
+                                                    console.log('重新分组后的数据:', { rootComments, flatReplies });
+                                                    
+                                                    // 重新渲染评论
+                                                    if (comments.length === 0) {
+                                                        otherComments.innerHTML = '<div class="empty-comment">抢个沙发吧</div>';
+                                                    } else {
+                                                        otherComments.innerHTML = rootComments.map(renderComment).join('');
+                                                    }
+                                                    
+                                                    // 重新绑定事件
+                                                    const newCommentItems = otherComments.querySelectorAll('.xijie');
+                                                    newCommentItems.forEach(item => {
+                                                        item.addEventListener('click', function(e) {
+                                                            e.stopPropagation();
+                                                            const commentId = this.dataset.idcomments;
+                                                            const commentName = this.querySelector('.name').textContent;
+                                                            const commentUserId = this.dataset.userid;
+                                                            const parentId = this.dataset.parentId;
+
+                                                            const textarea = cmt.querySelector('textarea');
+                                                            if (parentId) {
+                                                                textarea.placeholder = `回复 ${commentName}：`;
+                                                                textarea.dataset.parentId = parentId;
+                                                                textarea.dataset.parentUserId = commentUserId;
+                                                            } else {
+                                                                textarea.placeholder = `回复 ${commentName}：`;
+                                                                textarea.dataset.parentId = commentId;
+                                                                textarea.dataset.parentUserId = commentUserId;
+                                                            }
+                                                            textarea.focus();
+                                                        });
+                                                    });
+                                                    
+                                                    // 重新绑定删除按钮事件
+                                                    const newDeleteBtns = otherComments.querySelectorAll('.delete-comment-btn');
+                                                    newDeleteBtns.forEach(btn => {
+                                                        btn.addEventListener('click', arguments.callee);
+                                                    });
+                                                    
+                                                    const successAlert = document.querySelector('.alert-success');
+                                                    if (successAlert) {
+                                                        successAlert.style.display = 'block';
+                                                        successAlert.textContent = '删除成功';
+                                                        setTimeout(() => {
+                                                            successAlert.style.display = 'none';
+                                                        }, 3000);
+                                                    }
+                                                } else {
+                                                    console.log('删除失败:', res.data.message);
+                                                    alert(res.data.message || '删除失败');
+                                                }
+                                            } catch (error) {
+                                                console.error('删除评论失败:', error);
+                                                console.error('错误详情:', error.response?.data);
+                                                const danger = document.querySelector('.alert-danger');
+                                                if (danger) {
+                                                    danger.textContent = '删除失败，请重试';
+                                                    danger.style.display = 'block';
+                                                    setTimeout(() => {
+                                                        danger.style.display = 'none';
+                                                    }, 3000);
+                                                }
+                                            }
+                                        }
                                     });
                                 });
 
@@ -1097,10 +1942,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             const muluTop = target.closest('.mulu-top');
             if (muluTop) {
                 const postId = muluTop.querySelector('.like').dataset.id;
-                window.location.href = `/post/${postId}`;
+                window.location.href = `/post-detail/${postId}`;
             }
         });
         
+    });
+
+    // 添加用户名悬停事件处理
+    document.addEventListener('mouseover', function(e) {
+        if (e.target.classList.contains('uname')) {
+            const information = e.target.nextElementSibling;
+            if (information && information.classList.contains('information')) {
+                information.classList.add('active');
+            }
+        }
+    });
+
+    document.addEventListener('mouseout', function(e) {
+        if (e.target.classList.contains('uname')) {
+            const information = e.target.nextElementSibling;
+            if (information && information.classList.contains('information')) {
+                information.classList.remove('active');
+            }
+        }
     });
 
     // 添加图片预览功能
@@ -1287,76 +2151,138 @@ document.addEventListener('click', function(e) {
 });
 
 // 获取好友（关注的人）发的所有帖子
-async function getFriend() {
+async function getFriend(page = 1) {
+    // 设置当前激活的功能类型
+    currentActiveFunction = 'friend';
+    
     const content = document.querySelector('.content-next');
     content.innerHTML = '';
+    
     if (!userData) {
         content.innerHTML = '请先登录';
         return;
     }
-    // 获取当前用户关注的id列表
-    const followingStr = userData.following || '';
-    const followingArr = followingStr ? followingStr.split(',').filter(id => id.trim() !== '') : [];
-    if (followingArr.length === 0) {
-        content.innerHTML = '你还没有关注任何人';
-        return;
-    }
-    // 获取所有帖子
-    const allPosts = await getAllData();
-    // 过滤出被关注用户的帖子
-    const friendPosts = allPosts.filter(post => followingArr.includes(String(post.id_user)));
-    if (friendPosts.length === 0) {
-        content.innerHTML = '你关注的人还没有发过帖子';
-        return;
-    }
-    for (let i in friendPosts) {
-        const post = friendPosts[i];
-        const formatted = new Date(post.time).toLocaleString('zh-CN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
+    
+    try {
+        // 使用新的API端点获取好友帖子
+        const token = localStorage.getItem('eleToken');
+        if (!token) {
+            content.innerHTML = '请先登录';
+            return;
+        }
+        
+        const response = await axios.get(`/api/posts/friends?page=${page}&limit=5`, {
+            headers: {
+                'Authorization': token
+            }
         });
-        // 处理图片
-        let imagesArr = [];
-        try {
-            imagesArr = post.images ? JSON.parse(post.images) : [];
-        } catch(error) {
-            imagesArr = [];
+        
+        if (!response.data.success) {
+            content.innerHTML = '获取好友帖子失败';
+            return;
         }
-        let picturesHtml = '';
-        if (imagesArr.length > 0) {
-            picturesHtml = `<div class="pictures">` +
-                imagesArr.map(img => `<img src="${img}" class="post-image" loading="lazy">`).join('') +
-                `</div>`;
+        
+        const friendPosts = response.data.data;
+        
+        // 更新好友分页信息
+        if (response.data.pagination) {
+            friendCurrentPage = response.data.pagination.currentPage;
+            friendTotalPages = response.data.pagination.totalPages;
+            friendTotalPosts = response.data.pagination.totalPosts;
+            updatePaginationInfo('friend');
         }
-        const li = document.createElement('li');
-        content.appendChild(li);
-        li.innerHTML = `
-        <div class="mulu-top" style="position:relative;">
-        <div class="mulu">
-        <image class="avatar" src=${post.avatar}></image>
-            <div class="list">
-                <div class="divide_row">
-                    <a href="javascript:;" class="uname" data-userid="${post.id_user}">${post.name}</a>
-                </div>
-                <p class="sentences">${post.content}</p>
-                ${picturesHtml}
-                <div class="last">
-                    <p class="time">${formatted}</p>
-                    <div class="others">
-                        <a href="javascript:;" class="like" data-id="${post.id}">❤ 0</a>
-                        <a href="javascript:;" class="collect" data-id="${post.id}">⭐ 收藏</a>
-                        <a href='javascript:;' class="say" data-id="${post.id}">🖊 评论</a>
+        
+        if (friendPosts.length === 0) {
+            content.innerHTML = '你关注的人还没有发过帖子';
+            return;
+        }
+        
+        for (let i in friendPosts) {
+            const post = friendPosts[i];
+            const formatted = new Date(post.time).toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            // 获取用户的关注数和粉丝数
+            let userFollowing = 0;
+            let userFollowers = 0;
+            try {
+                const userRes = await axios.get(`/api/accounts/${post.id_user}/accounts`);
+                userFollowing = userRes.data.following || 0;
+                userFollowers = userRes.data.followers || 0;
+            } catch (error) {
+                console.error('获取用户关注数据失败:', error);
+            }
+            
+            // 处理图片
+            let imagesArr = [];
+            try {
+                imagesArr = post.images ? JSON.parse(post.images) : [];
+            } catch(error) {
+                imagesArr = [];
+            }
+            let picturesHtml = '';
+            if (imagesArr.length > 0) {
+                picturesHtml = `<div class="pictures">` +
+                    imagesArr.map(img => `<img src="${img}" class="post-image" loading="lazy">`).join('') +
+                    `</div>`;
+            }
+            
+            // 判断是否为贴主
+            let deleteBtnHtml = '';
+            if (userData && post.id_user == userData.id_user) {
+                deleteBtnHtml = `<button class="btn btn-link btn-sm delete-post-btn" data-id="${post.id}">
+                    <i class="bi bi-trash" style="font-size:20px;color:rgb(207, 185, 137);"></i>
+                </button>`;
+            }
+            
+            const li = document.createElement('li');
+            content.appendChild(li);
+            li.innerHTML = `
+            <div class="mulu-top" style="position:relative;">
+                ${deleteBtnHtml}
+                <div class="mulu">
+                    <image class="avatar" src=${post.avatar}></image>
+                    <div class="list">
+                        <div class="divide_row">
+                            <a href="javascript:;" class="uname" data-userid="${post.id_user}">${post.name}</a>
+                            <div class="information">
+                                <div class="divide">
+                                    <image class="touxiang" src=${post.avatar}></image>
+                                    <p class="name">${post.name}</p>
+                                </div>
+                                <div class="people">
+                                    <p>关注: ${userFollowing}</p>
+                                    <p>粉丝: ${userFollowers}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="sentences">${post.content}</p>
+                        ${picturesHtml}
+                        <div class="last">
+                            <p class="time">${formatted}</p>
+                            <div class="others">
+                                <a href="javascript:;" class="like" data-id="${post.id}">❤ 0</a>
+                                <a href="javascript:;" class="collect" data-id="${post.id}">⭐ 收藏</a>
+                                <a href='javascript:;' class="say" data-id="${post.id}">🖊 评论</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        </div>
-        `;
-        // 点赞、收藏等功能可复用getPosts里的逻辑
+            `;
+        }
+        
+        // 事件绑定通过事件委托处理，不需要单独绑定
+        
+    } catch (error) {
+        console.error('获取好友帖子失败:', error);
+        content.innerHTML = '获取好友帖子失败，请稍后重试';
     }
 }
 
@@ -1369,7 +2295,26 @@ window.addEventListener('popstate', function() {
     loadContent(page);
 });
 
-   
+// 添加分页事件处理
+document.addEventListener('DOMContentLoaded', function() {
+    const prevPage = document.getElementById('prevPage');
+    const nextPage = document.getElementById('nextPage');
+    
+    if (prevPage) {
+        prevPage.addEventListener('click', function() {
+            if (currentPage > 1) {
+                goToPage(currentPage - 1);
+            }
+        });
+    }
+    
+    if (nextPage) {
+        nextPage.addEventListener('click', function() {
+            if (currentPage < totalPages) {
+                goToPage(currentPage + 1);
+            }
+        });
+    }
+});
 
-       
     </script>

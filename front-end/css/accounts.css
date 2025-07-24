@@ -187,7 +187,69 @@ body {
 .follow-btn.active {
     background-color: #c68317;
     color: white;
-    border: 2px solid #c68317;
-    cursor: not-allowed;
-    opacity: 0.7;
+}
+
+/* 小名片样式 */
+.list .uname {
+    position: relative;
+    display: inline-block;
+}
+
+.information {
+    display: none;
+    position: absolute;
+    z-index: 90;
+    background-color: rgb(255, 255, 255);
+    width: 280px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    padding: 16px;
+    left: calc(100% + 5px);
+    top: 50%;
+    transform: translateY(-50%);
+    animation: information 0.3s ease;
+}
+
+.information.active {
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes information {
+    0%{opacity:0; transform: translateY(-10px);}
+    100%{opacity:1; transform: translateY(0);}
+}
+
+.information .divide {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.information .touxiang {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-right: 12px;
+    border: 2px solid #f7e7c6;
+}
+
+.information .name {
+    font-size: 18px;
+    color: #c68317;
+    font-weight: bold;
+    margin: 0;
+}
+
+.information .people {
+    display: flex;
+    flex-direction: row;
+    gap: 25px;
+    font-size: 14px;
+    color: #666;
+}
+
+.information .people p {
+    margin: 0;
 }

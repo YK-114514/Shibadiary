@@ -83,20 +83,38 @@ console.log(userId)
             const statsGet = document.querySelector('.stats')
             statsGet.innerHTML = `关注: ${res.data.following} | 粉丝: ${res.data.followers}`
 
-            // 判断是否已关注
+            // 判断是否已关注 - 从数据库获取最新状态
             const userD = localStorage.getItem('user_data');
             const user_data = JSON.parse(userD);
-            const followingStr = user_data.following || '';
-            const followingArr = followingStr ? followingStr.split(',') : [];
-            const isFollowing = followingArr.includes(userId);
-
-            const followBtn = document.querySelector('.follow-btn');
-            if (isFollowing) {
-                followBtn.innerText = '已关注';
-                followBtn.classList.add('active');
-            } else {
-                followBtn.innerText = '关注';
-                followBtn.classList.remove('active');
+            
+            // 检查当前用户是否已关注目标用户
+            try {
+                const checkFollowRes = await axios.get(`/api/accounts/check-follow?follower_id=${user_data.id_user}&following_id=${userId}`);
+                const isFollowing = checkFollowRes.data.isFollowing;
+                
+                const followBtn = document.querySelector('.follow-btn');
+                if (isFollowing) {
+                    followBtn.innerText = '已关注';
+                    followBtn.classList.add('active');
+                } else {
+                    followBtn.innerText = '关注';
+                    followBtn.classList.remove('active');
+                }
+            } catch (error) {
+                console.error('检查关注状态失败:', error);
+                // 如果API调用失败，使用localStorage作为备选方案
+                const followingStr = user_data.following || '';
+                const followingArr = followingStr ? followingStr.split(',') : [];
+                const isFollowing = followingArr.includes(userId);
+                
+                const followBtn = document.querySelector('.follow-btn');
+                if (isFollowing) {
+                    followBtn.innerText = '已关注';
+                    followBtn.classList.add('active');
+                } else {
+                    followBtn.innerText = '关注';
+                    followBtn.classList.remove('active');
+                }
             }
 
             return allData;   
@@ -121,7 +139,7 @@ console.log(userId)
 
         content.innerHTML = '' // 清空现有内容
 
-        post_Datas.forEach(post => {
+        post_Datas.forEach(async (post) => {
             const formatted = new Date(post.time).toLocaleString('zh-CN', {
                 year: 'numeric',
                 month: '2-digit',
@@ -131,6 +149,17 @@ console.log(userId)
                 hour12: false
             })
 
+            // 获取用户的关注数和粉丝数
+            let userFollowing = 0;
+            let userFollowers = 0;
+            try {
+                const userRes = await axios.get(`/api/accounts/${post.id_user}/accounts`);
+                userFollowing = userRes.data.following || 0;
+                userFollowers = userRes.data.followers || 0;
+            } catch (error) {
+                console.error('获取用户关注数据失败:', error);
+            }
+
             const li = document.createElement('li')
             li.innerHTML = `
                 <div class="mulu-top">
@@ -139,8 +168,17 @@ console.log(userId)
                         <div class="list">
                             <div class="divide_row">
                                 <a href="javascript:;" class="uname">${post.name}</a>
+                                <div class="information">
+                                    <div class="divide">
+                                        <image class="touxiang" src=${post.avatar}></image>
+                                        <p class="name">${post.name}</p>
+                                    </div>
+                                    <div class="people">
+                                        <p>关注: ${userFollowing}</p>
+                                        <p>粉丝: ${userFollowers}</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="information"></div>
                             <p class="sentences">${post.content}</p>
                             <div class="pictures"></div>
                             <div class="last">
@@ -161,6 +199,25 @@ console.log(userId)
 
     document.addEventListener('DOMContentLoaded', () => {
     getAccounts();
+    
+    // 添加用户名悬停事件处理
+    document.addEventListener('mouseover', function(e) {
+        if (e.target.classList.contains('uname')) {
+            const information = e.target.nextElementSibling;
+            if (information && information.classList.contains('information')) {
+                information.classList.add('active');
+            }
+        }
+    });
+
+    document.addEventListener('mouseout', function(e) {
+        if (e.target.classList.contains('uname')) {
+            const information = e.target.nextElementSibling;
+            if (information && information.classList.contains('information')) {
+                information.classList.remove('active');
+            }
+        }
+    });
     });
 
     const followBtn = document.querySelector('.follow-btn');
@@ -171,27 +228,29 @@ console.log(userId)
 
     followBtn.addEventListener('click', async () => {
         if (followBtn.classList.contains('active')) {
-            // 已关注，点击后取消关注
-            try {
-                const res = await axios.post('/api/accounts/unfollow', {
-                    follower_id,
-                    following_id
-                });
-                if (res.data.success) {
-                    alert('已取消关注');
-                    followBtn.innerText = '关注';
-                    followBtn.classList.remove('active');
-                    // 更新localStorage
-                    let followingArr = user_data.following ? user_data.following.split(',') : [];
-                    followingArr = followingArr.filter(id => id !== following_id);
-                    user_data.following = followingArr.join(',');
-                    localStorage.setItem('user_data', JSON.stringify(user_data));
-                } else {
-                    alert(res.data.message || '取消关注失败');
+            // 已关注，点击后弹出确认弹窗
+            if (confirm('确定要取关该用户？')) {
+                try {
+                    const res = await axios.post('/api/accounts/unfollow', {
+                        follower_id,
+                        following_id
+                    });
+                    if (res.data.success) {
+                        alert('已取消关注');
+                        followBtn.innerText = '关注';
+                        followBtn.classList.remove('active');
+                        // 更新localStorage
+                        let followingArr = user_data.following ? user_data.following.split(',') : [];
+                        followingArr = followingArr.filter(id => id !== following_id);
+                        user_data.following = followingArr.join(',');
+                        localStorage.setItem('user_data', JSON.stringify(user_data));
+                    } else {
+                        alert(res.data.message || '取消关注失败');
+                    }
+                } catch (err) {
+                    alert('取消关注失败');
+                    console.error(err);
                 }
-            } catch (err) {
-                alert('取消关注失败');
-                console.error(err);
             }
         } else {
             // 未关注，点击后关注

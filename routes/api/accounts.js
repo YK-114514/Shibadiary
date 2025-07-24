@@ -4,6 +4,70 @@ const passport = require('passport')
 const jwt = require('jsonwebtoken');
 const db = require('../../database/index')
 
+// 检查关注状态 - 必须放在参数路由之前
+router.get('/check-follow', (req, res) => {
+    const { follower_id, following_id } = req.query;
+    if (!follower_id || !following_id) {
+        return res.json({ success: false, message: '参数缺失' });
+    }
+    
+    // 查询follows表检查是否存在关注关系
+    db.query('SELECT * FROM follows WHERE follower_id = ? AND following_id = ?', 
+        [follower_id, following_id], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.json({ success: false, message: '数据库错误' });
+        }
+        
+        const isFollowing = results.length > 0;
+        return res.json({ 
+            success: true, 
+            isFollowing: isFollowing 
+        });
+    });
+});
+
+// 获取用户的关注列表详情 - 必须放在参数路由之前
+router.get('/following/:userId', (req, res) => {
+    const userId = req.params.userId;
+    
+    if (!userId) {
+        return res.json({ success: false, message: '用户ID缺失' });
+    }
+    
+    // 首先获取用户的关注ID列表
+    db.query('SELECT following FROM user WHERE id_user = ?', [userId], (err, userResults) => {
+        if (err) {
+            console.error(err);
+            return res.json({ success: false, message: '数据库错误' });
+        }
+        
+        if (userResults.length === 0) {
+            return res.json({ success: true, data: [] });
+        }
+        
+        const followingStr = userResults[0].following || '';
+        const followingIds = followingStr ? followingStr.split(',').filter(id => id.trim() !== '') : [];
+        
+        if (followingIds.length === 0) {
+            return res.json({ success: true, data: [] });
+        }
+        
+        // 获取关注用户的详细信息
+        const placeholders = followingIds.map(() => '?').join(',');
+        const sql = `SELECT id_user, name, avatar FROM user WHERE id_user IN (${placeholders})`;
+        
+        db.query(sql, followingIds, (err, results) => {
+            if (err) {
+                console.error(err);
+                return res.json({ success: false, message: '获取关注用户信息失败' });
+            }
+            
+            return res.json({ success: true, data: results });
+        });
+    });
+});
+
 // 获取用户帖子和关注信息
 router.get('/:userId/accounts', (req, res) => {
     // 获取用户帖子

@@ -71,20 +71,144 @@
 </div>
 
 <script>
-// 检查登录状态
-function checkLoginStatus() {
-    const token = localStorage.getItem('eleToken');
-    const userData = localStorage.getItem('user_data');
+        // 监听用户信息更新
+window.addEventListener('storage', function(e) {
+            if (e.key === 'userUpdate') {
+        try {
+            const updateData = JSON.parse(e.newValue);
+                    console.log('解析的用户信息更新数据:', updateData);
+                    
+                    // 更新头像
+            if (updateData && updateData.avatar) {
+                updateAllAvatars(updateData.avatar);
+                    }
+                    
+                    // 更新昵称
+                    if (updateData && updateData.nickname) {
+                        const usernameElement = document.querySelector('.username');
+                        if (usernameElement) {
+                            usernameElement.textContent = updateData.nickname;
+                        }
+                    }
+                    
+                    // 从数据库获取最新的用户信息
+                    fetchLatestUserData().then(() => {
+                        // 更新页面上的用户名显示
+                        const usernameElement = document.querySelector('.username');
+                        if (usernameElement) {
+                            const latestUserData = JSON.parse(localStorage.getItem('user_data'));
+                            if (latestUserData) {
+                                usernameElement.textContent = latestUserData.name;
+                            }
+                        }
+                        console.log('消息页面已更新用户信息显示');
+                    });
+                    
+                    console.log('消息页面收到用户信息更新通知:', updateData);
+        } catch (error) {
+                    console.error('解析用户信息更新数据失败:', error);
+        }
+    }
+});
+
+// 更新所有头像的函数
+function updateAllAvatars(newAvatarUrl) {
+    console.log('开始更新消息页面头像，新头像URL:', newAvatarUrl);
     
-    if (token && userData) {
+    // 更新所有img标签的头像
+    const allImages = document.querySelectorAll('img');
+    let updatedCount = 0;
+    allImages.forEach(img => {
+        // 检查是否是头像图片（更宽松的条件）
+        if (img.src && (
+            img.src.includes('/images/default_avatar.jpg') || 
+            img.src.includes('/images/avatars/') ||
+            img.classList.contains('avatar') ||
+            img.classList.contains('touxiang') ||
+            img.classList.contains('profile')
+        )) {
+            console.log('更新img标签头像:', img.src, '->', newAvatarUrl);
+            // 添加时间戳防止缓存
+            const newUrl = newAvatarUrl + (newAvatarUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+            img.src = newUrl;
+            updatedCount++;
+        }
+    });
+    
+    // 更新所有image标签的头像
+    const allImageElements = document.querySelectorAll('image');
+    allImageElements.forEach(img => {
+        // 检查是否是头像图片（更宽松的条件）
+        if (img.src && (
+            img.src.includes('/images/default_avatar.jpg') || 
+            img.src.includes('/images/avatars/') ||
+            img.classList.contains('avatar') ||
+            img.classList.contains('touxiang') ||
+            img.classList.contains('profile')
+        )) {
+            console.log('更新image标签头像:', img.src, '->', newAvatarUrl);
+            // 添加时间戳防止缓存
+            const newUrl = newAvatarUrl + (newAvatarUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+            img.src = newUrl;
+            updatedCount++;
+        }
+    });
+    
+    console.log('消息页面头像更新完成，共更新了', updatedCount, '个头像');
+}
+
+// 从数据库获取最新的用户信息
+async function fetchLatestUserData() {
+    const token = localStorage.getItem('eleToken');
+    if (!token) {
+        console.log('未登录，无法获取用户信息');
+        return null;
+    }
+    
+    try {
+        const response = await axios.get('/api/user/me', {
+            headers: { 'Authorization': token }
+        });
+        
+        if (response.data.success && response.data.user) {
+            const latestUserData = {
+                id_user: response.data.user.id,
+                name: response.data.user.name,
+                avatar: response.data.user.avatar,
+                phone: response.data.user.phone
+            };
+            
+            // 更新localStorage中的用户数据
+            localStorage.setItem('user_data', JSON.stringify(latestUserData));
+            
+            console.log('已从数据库获取最新用户信息:', latestUserData);
+            return latestUserData;
+        }
+    } catch (error) {
+        console.error('获取用户信息失败:', error);
+        return null;
+    }
+}
+
+// 检查登录状态
+async function checkLoginStatus() {
+    const token = localStorage.getItem('eleToken');
+    
+    if (token) {
+        // 从数据库获取最新的用户信息
+        const latestUserData = await fetchLatestUserData();
+    
+        if (latestUserData) {
         document.querySelector('.before-login').style.display = 'none';
         document.querySelector('.user-menu').style.display = 'inline-block';
-        
-        const user = JSON.parse(userData);
-        document.querySelector('.username').textContent = user.name;
+            document.querySelector('.username').textContent = latestUserData.name;
         
         // 加载消息列表
         loadMessages();
+        } else {
+            // 获取用户信息失败，跳转到登录页面
+            window.location.href = '/login';
+        }
     } else {
         // 未登录，跳转到登录页面
         window.location.href = '/login';

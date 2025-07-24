@@ -6,6 +6,8 @@ const db = require('../../database/index')
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' }); // 保存到本地 uploads 目录
 
+console.log('✅ posts路由模块加载');
+
 // 封装数据库查询为 Promise
 const query = (sql, values) => {
     return new Promise((resolve, reject) => {
@@ -30,19 +32,229 @@ function toMysqlDatetime(date) {
         String(d.getSeconds()).padStart(2, '0');
 }
 
-//获取全部帖子信息
-router.get('/index',(req,res)=>{
-    db.query('select * from post_infom ORDER BY time DESC',(err,results)=>{
-        if(err) throw err
-        if(results.length === 0){
-            return res.status(404).json('暂无数据')
-        }else{
-            return res.json(results)
+//获取好友（关注的人）的帖子
+router.get('/friends', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        const userId = req.user.id_user;
+        console.log('获取好友帖子，用户ID:', userId);
+        
+        // 获取当前用户的关注列表
+        const userResult = await query('SELECT following FROM user WHERE id_user = ?', [userId]);
+        
+        if (userResult.length === 0) {
+            return res.json({ success: true, data: [] });
         }
+        
+        const followingStr = userResult[0].following || '';
+        const followingArr = followingStr ? followingStr.split(',').filter(id => id.trim() !== '') : [];
+        
+        console.log('关注列表:', followingArr);
+        
+        if (followingArr.length === 0) {
+            return res.json({ success: true, data: [] });
+        }
+        
+        // 获取关注的人的帖子
+        const placeholders = followingArr.map(() => '?').join(',');
+        const sqlStr = `
+            SELECT * FROM post_infom 
+            WHERE id_user IN (${placeholders}) 
+            ORDER BY time DESC
+        `;
+        
+        console.log('执行SQL查询:', sqlStr);
+        console.log('查询参数:', followingArr);
+        
+        const results = await query(sqlStr, followingArr);
+        
+        console.log('好友帖子数量:', results.length);
+        
+        return res.json({ success: true, data: results });
+        
+    } catch (error) {
+        console.error('获取好友帖子失败:', error);
+        return res.status(500).json({ success: false, message: '获取好友帖子失败' });
+    }
+});
+
+//搜索帖子
+router.get('/search', (req, res) => {
+    const keyword = req.query.keyword;
+    
+    console.log('搜索请求 - 关键词:', keyword);
+    
+    if (!keyword || keyword.trim() === '') {
+        console.log('搜索关键词为空，返回400错误');
+        return res.status(400).json({ success: false, message: '搜索关键词不能为空' });
+    }
+    
+    const searchKeyword = `%${keyword}%`;
+    const sqlStr = `
+        SELECT * FROM post_infom 
+        WHERE (name LIKE ? OR content LIKE ?) 
+        ORDER BY time DESC
+    `;
+    
+    console.log('执行SQL查询:', sqlStr);
+    console.log('查询参数:', [searchKeyword, searchKeyword]);
+    
+    db.query(sqlStr, [searchKeyword, searchKeyword], (err, results) => {
+        if (err) {
+            console.log('搜索错误:', err.message);
+            return res.status(500).json({ success: false, message: '搜索失败' });
+        }
+        
+        console.log('搜索结果数量:', results.length);
+        console.log('搜索结果:', results);
+        
+        // 即使没有结果也返回成功，让前端处理
+        return res.json({
+            success: true,
+            data: results || [],
+            keyword: keyword
+        });
+    });
+});
+
+//获取全部帖子信息（支持分页）
+router.get('/index', (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const offset = (page - 1) * limit;
+    
+    console.log('首页分页参数:', { page, limit, offset });
+    
+    // 获取帖子总数
+    db.query('SELECT COUNT(*) as total FROM post_infom', (err, countResult) => {
+        if (err) throw err
+        
+        const total = countResult[0].total;
+        const totalPages = Math.ceil(total / limit);
+        
+        console.log('首页分页计算结果:', { total, totalPages, currentPage: page });
+        
+        // 获取分页帖子
+        db.query('SELECT * FROM post_infom ORDER BY time DESC LIMIT ? OFFSET ?', 
+            [limit, offset], (err, results) => {
+            if (err) throw err
+            
+            console.log('首页查询到的帖子数量:', results.length);
+            
+            if (results.length === 0) {
+                return res.json({
+                    posts: [],
+                    pagination: {
+                        currentPage: page,
+                        totalPages: totalPages,
+                        totalPosts: total,
+                        postsPerPage: limit,
+                        hasNextPage: page < totalPages,
+                        hasPrevPage: page > 1
+                    }
+                });
+            } else {
+                return res.json({
+                    posts: results,
+                    pagination: {
+                        currentPage: page,
+                        totalPages: totalPages,
+                        totalPosts: total,
+                        postsPerPage: limit,
+                        hasNextPage: page < totalPages,
+                        hasPrevPage: page > 1
+                    }
+                });
+            }
+        });
+    });
+})
+
+//根据点赞数显示帖子顺序（支持分页）
+router.get('/indexLike', (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const offset = (page - 1) * limit;
+    
+    console.log('点赞排序分页参数:', { page, limit, offset });
+    
+    // 获取帖子总数
+    db.query('SELECT COUNT(*) as total FROM post_infom', (err, countResult) => {
+        if (err) throw err
+        
+        const total = countResult[0].total;
+        const totalPages = Math.ceil(total / limit);
+        
+        console.log('点赞排序分页计算结果:', { total, totalPages, currentPage: page });
+        
+        // 获取分页帖子（按点赞数排序）
+        const sqlStr = `
+            SELECT post_infom.*, 
+                   (SELECT COUNT(*) FROM likes WHERE likes.id_from_post = post_infom.id) as likeCount 
+            FROM post_infom 
+            ORDER BY likeCount DESC 
+            LIMIT ? OFFSET ?
+        `;
+        
+        db.query(sqlStr, [limit, offset], (err, results) => {
+            if (err) throw err
+            
+            console.log('点赞排序查询到的帖子数量:', results.length);
+            
+            if (results.length === 0) {
+                return res.json({
+                    posts: [],
+                    pagination: {
+                        currentPage: page,
+                        totalPages: totalPages,
+                        totalPosts: total,
+                        postsPerPage: limit,
+                        hasNextPage: page < totalPages,
+                        hasPrevPage: page > 1
+                    }
+                });
+            } else {
+                return res.json({
+                    posts: results,
+                    pagination: {
+                        currentPage: page,
+                        totalPages: totalPages,
+                        totalPosts: total,
+                        postsPerPage: limit,
+                        hasNextPage: page < totalPages,
+                        hasPrevPage: page > 1
+                    }
+                });
+            }
+        });
+    });
+})
+
+//显示收藏
+router.get('/collect',passport.authenticate('jwt',{session:false}),(req,res)=>{
+    db.query('select * from collect where userid_collect=?',[req.user.id_user],(err,result)=>{
+        if(err){
+            console.log(err.message)
+            return res.status(500).json(err.message)
+        }
+        return res.json(result)
     })
 })
 
-//获取评论区的信息
+//显示点赞
+router.get('/like/:postId',(req,res)=>{
+    db.query('select userid_like from likes where id_from_post=?',[req.params.postId],(err,result)=>{
+        if(err){
+            console.log(err.message)
+            return res.status(500).json(err.message)
+        }
+
+        const likeCount = result.length     
+        const userIdLike = result.map(item=>item.userid_like)   
+        return res.json({likeCount:likeCount, userIdLike:userIdLike})
+    })
+})
+
+//获取评论区的信息 - 移到具体路由之后
 router.get('/:postId/comments',(req,res)=>{
     const postId = req.params.postId
 
@@ -56,7 +268,7 @@ router.get('/:postId/comments',(req,res)=>{
     })
 })
 
-//获取单个帖子详情
+//获取单个帖子详情 - 移到所有具体路由之后
 router.get('/:postId',(req,res)=>{
     const postId = req.params.postId
     
@@ -310,16 +522,6 @@ router.post('/addCollect',passport.authenticate('jwt',{session:false}), async (r
         return res.status(500).json({ success: false, message: error.message });
     }
 });
-//显示收藏
-router.get('/collect',passport.authenticate('jwt',{session:false}),(req,res)=>{
-    db.query('select * from collect where userid_collect=?',[req.user.id_user],(err,result)=>{
-        if(err){
-            console.log(err.message)
-            return res.status(500).json(err.message)
-        }
-        return res.json(result)
-    })
-})
 
 //点赞
 router.post('/addLike', passport.authenticate('jwt', { session: false }), async (req, res) => {
@@ -427,32 +629,6 @@ router.post('/addLike', passport.authenticate('jwt', { session: false }), async 
     }
 });
 
-//显示点赞
-router.get('/like/:postId',(req,res)=>{
-    db.query('select userid_like from likes where id_from_post=?',[req.params.postId],(err,result)=>{
-        if(err){
-            console.log(err.message)
-            return res.status(500).json(err.message)
-        }
-
-        const likeCount = result.length     
-        const userIdLike = result.map(item=>item.userid_like)   
-        return res.json({likeCount:likeCount, userIdLike:userIdLike})
-    })
-})
-
-//根据点赞数显示帖子顺序
-router.get('/indexLike',(req,res)=>{
-    db.query('select post_infom.*,(select count(*) from likes where likes.id_from_post=post_infom.id) as likeCount from post_infom order by likeCount DESC',(err,result)=>{
-        if(err) throw err
-        if(result.length === 0){
-            return res.status(404).json('暂无数据')
-        }else{
-            return res.json(result)
-        }
-    })
-})
-
 // 删除帖子接口
 router.delete('/:id', passport.authenticate('jwt', { session: false }), (req, res) => {
     const postId = req.params.id;
@@ -480,6 +656,32 @@ router.delete('/:id', passport.authenticate('jwt', { session: false }), (req, re
             res.json({ code: 0, msg: '删除成功' });
         });
     });
+});
+
+// 删除评论接口
+router.delete('/comments/:commentId', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        const commentId = req.params.commentId;
+        const userId = req.user.id_user;
+
+        console.log('删除评论，评论ID:', commentId, '用户ID:', userId);
+
+        // 验证评论是否属于当前用户
+        const comment = await query('SELECT * FROM comments WHERE idcomments = ? AND id_user = ?', [commentId, userId]);
+        
+        if (comment.length === 0) {
+            return res.status(404).json({ success: false, message: '评论不存在或无权限删除' });
+        }
+
+        // 删除评论
+        await query('DELETE FROM comments WHERE idcomments = ?', [commentId]);
+
+        res.json({ success: true, message: '删除成功' });
+
+    } catch (error) {
+        console.error('删除评论失败:', error);
+        res.status(500).json({ success: false, message: '删除失败' });
+    }
 });
 
 module.exports = router

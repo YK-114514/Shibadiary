@@ -72,8 +72,20 @@ router.get('/message', (req, res) => {
   });
 });
 
-// 帖子详情页路由
-router.get('/post/:id', (req, res) => {
+// 设置页面路由
+router.get('/setting', (req, res) => {
+  const filePath = path.join(__dirname, '../front-end/views/setting.html');
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('文件发送错误:', err);
+      console.log('尝试访问的文件路径:', filePath);
+      res.status(500).send('无法加载设置页面');
+    }
+  });
+});
+
+// 帖子详情页路由 - 修改路径避免与API路由冲突
+router.get('/post-detail/:id', (req, res) => {
   const filePath = path.join(__dirname, '../front-end/views/specific.html');
   res.sendFile(filePath, (err) => {
     if (err) {

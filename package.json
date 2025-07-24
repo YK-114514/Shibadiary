@@ -1,15 +1,21 @@
 {
-  "name": "app",
+  "name": "xiaochai-diary",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "dev": "nodemon app.js",
     "server": "node app.js"
   },
   "author": "fyk",
   "license": "ISC",
-  "keywords": [],
-  "description": "",
+  "keywords": ["pet", "diary", "social", "blog"],
+  "description": "小柴日记 - 宠物社交博客平台",
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
   "dependencies": {
     "ajax": "^0.0.4",
     "axios": "^1.8.4",
@@ -21,10 +27,12 @@
     "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
     "multer": "^2.0.0",
+    "mysql": "^2.18.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.0.0"
   }
 }

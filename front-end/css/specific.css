@@ -84,6 +84,9 @@
 }
 
 .author-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 4px;
 }
 
@@ -91,6 +94,26 @@
     color: #e09620;
     font-weight: 500;
     text-decoration: none;
+    flex: 1;
+}
+
+.delete-comment-btn {
+    background: none;
+    border: none;
+    color: rgb(207, 185, 137);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    margin-left: auto;
+    line-height: 1;
+}
+
+.delete-comment-btn:hover {
+    background-color: #fff2f0;
+    transform: scale(1.1);
+    color: #ff4d4f;
 }
 
 .words {
@@ -158,4 +181,69 @@
     background-color: #fff2f0;
     border-radius: 8px;
     margin: 20px 0;
+}
+
+/* 小名片样式 */
+.post-author-name {
+    position: relative;
+    display: inline-block;
+}
+
+.information {
+    display: none;
+    position: absolute;
+    z-index: 90;
+    background-color: rgb(255, 255, 255);
+    width: 280px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    padding: 16px;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    animation: information 0.3s ease;
+}
+
+.information.active {
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes information {
+    0%{opacity:0; transform: translateY(-10px);}
+    100%{opacity:1; transform: translateY(0);}
+}
+
+.information .divide {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.information .touxiang {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-right: 12px;
+    border: 2px solid #f7e7c6;
+}
+
+.information .name {
+    font-size: 18px;
+    color: #c68317;
+    font-weight: bold;
+    margin: 0;
+}
+
+.information .people {
+    display: flex;
+    flex-direction: row;
+    gap: 25px;
+    font-size: 14px;
+    color: #666;
+}
+
+.information .people p {
+    margin: 0;
 } 

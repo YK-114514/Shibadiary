@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据库修复工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin: 20px 0;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>数据库修复工具</h1>
+        <p>点击下面的按钮来删除 post_infom 表中的 avatar 和 name 列：</p>
+        <button id="fixBtn" onclick="fixDatabase()">修复数据库结构</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function fixDatabase() {
+            const btn = document.getElementById('fixBtn');
+            const result = document.getElementById('result');
+            
+            btn.disabled = true;
+            btn.textContent = '正在修复...';
+            result.innerHTML = '';
+            
+            try {
+                const response = await fetch('/fix-database');
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.className = 'result success';
+                    result.innerHTML = `✅ 修复成功！\n\n${data.message}\n\n表结构：\n${JSON.stringify(data.tableStructure, null, 2)}`;
+                } else {
+                    result.className = 'result error';
+                    result.innerHTML = `❌ 修复失败：\n${data.error}`;
+                }
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = `❌ 请求失败：\n${error.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '修复数据库结构';
+            }
+        }
+    </script>
+</body>
+</html> 
