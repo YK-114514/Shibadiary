@@ -70,13 +70,21 @@ router.get('/following/:userId', (req, res) => {
 
 // 获取用户帖子和关注信息
 router.get('/:userId/accounts', (req, res) => {
+    console.log('请求用户数据，用户ID:', req.params.userId);
+    
     // 获取用户帖子
-    db.query('select * from post_infom where id_user=?', [req.params.userId], (err, results) => {
-        if (err) throw err
+    db.query('select p.*, u.name, u.avatar from post_infom p LEFT JOIN user u ON p.id_user = u.id_user where p.id_user=?', [req.params.userId], (err, results) => {
+        if (err) {
+            console.error('查询用户帖子失败:', err);
+            return res.status(500).json({ error: '数据库查询失败' });
+        }
 
         // 查询user表的following和fans字段
         db.query('SELECT following, fans FROM user WHERE id_user = ?', [req.params.userId], (err, userResults) => {
-            if (err) throw err
+            if (err) {
+                console.error('查询用户信息失败:', err);
+                return res.status(500).json({ error: '数据库查询失败' });
+            }
 
             let followingCount = 0;
             let followersCount = 0;

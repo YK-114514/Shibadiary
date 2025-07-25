@@ -131,6 +131,11 @@
                     const decode = jwt_decode(token);
                     localStorage.setItem('user_data', JSON.stringify(decode));
 
+                    // 调用登录成功函数
+                    if (window.loginSuccess) {
+                        window.loginSuccess();
+                    }
+
                     setTimeout(() => {
                         alertSuccess.classList.remove('show');
                         setTimeout(() => {

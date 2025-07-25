@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="/css/index.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="/http.js"></script>
+    <script src="../http.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
 
@@ -216,26 +216,42 @@
 // 检查用户登录状态
 function checkLoginStatus() {
     const token = localStorage.getItem('eleToken');
+    const userData = localStorage.getItem('user_data');
+    
+    if (!token || !userData) {
+        console.log('未登录，跳转到登录页面');
+        window.location.href = '/login';
+        return;
+    }
+    
+    try {
+        JSON.parse(userData);
+    } catch (e) {
+        console.log('用户数据格式错误，跳转到登录页面');
+        window.location.href = '/login';
+        return;
+    }
+    
+    // 已登录，正常显示
     const beforeLogin = document.querySelector('.before-login');
     const userMenu = document.querySelector('.user-menu');
     const username = document.querySelector('.username');
     
-    if (token) {
-        // 已登录
+    if (beforeLogin && userMenu) {
         beforeLogin.style.display = 'none';
         userMenu.style.display = 'inline-block';
         
         // 解析JWT获取用户名
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            username.textContent = payload.name || '用户';
+            if (username) {
+                username.textContent = payload.name || '用户';
+            }
         } catch (e) {
-            username.textContent = '用户';
+            if (username) {
+                username.textContent = '用户';
+            }
         }
-    } else {
-        // 未登录
-        beforeLogin.style.display = 'inline-block';
-        userMenu.style.display = 'none';
     }
 }
 
@@ -262,7 +278,10 @@ const logoutBtn = document.getElementById('logout');
 if (logoutBtn) {
     logoutBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        localStorage.removeItem('eleToken');
+        // 调用全局退出登录函数
+        if (window.logout) {
+            window.logout();
+        }
         window.location.href = '/login';
     });
 }

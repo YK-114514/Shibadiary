@@ -71,7 +71,27 @@
 </div>
 
 <script>
-        // 监听用户信息更新
+    // 检查登录状态，如果未登录则跳转到登录页面
+    (function checkLoginStatus() {
+        const token = localStorage.getItem('eleToken');
+        const userData = localStorage.getItem('user_data');
+        
+        if (!token || !userData) {
+            console.log('未登录，跳转到登录页面');
+            window.location.href = '/login';
+            return;
+        }
+        
+        try {
+            JSON.parse(userData);
+        } catch (e) {
+            console.log('用户数据格式错误，跳转到登录页面');
+            window.location.href = '/login';
+            return;
+        }
+    })();
+
+    // 监听用户信息更新
 window.addEventListener('storage', function(e) {
             if (e.key === 'userUpdate') {
         try {

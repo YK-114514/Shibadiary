@@ -101,6 +101,8 @@
     <div class="alert alert-danger" role="alert" style="display:none">
         发布失败！
     </div>
+    
+
 
         </div>
     </div>
@@ -119,7 +121,9 @@
                     </div>
                 </div>
                 <div class="search-bar-demo">
-                    <input type="text" class="search-input-demo" placeholder="搜索你感兴趣的内容..." id="searchInput">
+                    <div class="search-input-wrapper">
+                        <input type="text" class="search-input-demo" placeholder="请输入关键词..." id="searchInput">
+                    </div>
                     <button class="search-btn-demo" id="searchBtn">
                         <i class="bi bi-search"></i>
                     </button>
@@ -222,12 +226,14 @@
         let searchTimeout = null;
         let currentSearchKeyword = '';
         let isSearching = false;
+        let currentSearchRequest = null; // 用于取消正在进行的搜索请求
 
         // 防抖函数
         function debounce(func, wait) {
             return function executedFunction(...args) {
                 const later = () => {
                     clearTimeout(searchTimeout);
+                    searchTimeout = null;
                     func(...args);
                 };
                 clearTimeout(searchTimeout);
@@ -254,7 +260,7 @@
             if (!userData || !userData.id_user) {
                 console.log('用户未登录，无法加载关注列表');
                 const sidebarList = document.querySelector('.sidebar-list');
-                sidebarList.innerHTML = '<li><span class="sidebar-name">请先登录</span></li>';
+                sidebarList.innerHTML = '<li><span class="sidebar-name">登录后再查看关注哦！</span></li>';
                 return;
             }
 
@@ -268,7 +274,7 @@
                     sidebarList.innerHTML = '';
                     
                     if (followingList.length === 0) {
-                        sidebarList.innerHTML = '<li><span class="sidebar-name">暂无关注</span></li>';
+                        sidebarList.innerHTML = '<li><span class="sidebar-name">去关注一下吧！</span></li>';
                         return;
                     }
                     
@@ -346,6 +352,30 @@
                     `;
                 }
                 
+                // 添加点击事件，跳转到用户主页
+                li.style.cursor = 'pointer';
+                li.addEventListener('click', function() {
+                    console.log('点击用户:', user.name, '用户ID:', user.id_user);
+                    console.log('当前登录用户ID:', userData ? userData.id_user : '未登录');
+                    // 判断是否是当前登录用户
+                    if (userData && user.id_user == userData.id_user) {
+                        console.log('跳转到个人页面');
+                        window.location.href = '/personal';
+                    } else {
+                        console.log('跳转到用户页面:', `/accounts?id=${user.id_user}`);
+                        window.location.href = `/accounts?id=${user.id_user}`;
+                    }
+                });
+                
+                // 添加悬停效果
+                li.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = 'rgba(198, 131, 23, 0.1)';
+                });
+                
+                li.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = '';
+                });
+                
                 sidebarList.appendChild(li);
             }
             
@@ -358,7 +388,10 @@
                 loadMoreLi.innerHTML = `
                     <span class="load-more-btn">加载更多...</span>
                 `;
-                loadMoreLi.addEventListener('click', loadMoreUsers);
+                loadMoreLi.addEventListener('click', function(e) {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    loadMoreUsers();
+                });
                 sidebarList.appendChild(loadMoreLi);
             }
         }
@@ -424,18 +457,25 @@
         async function performSearch(keyword) {
             console.log('执行搜索，关键词:', keyword);
             
+            // 取消之前的搜索请求
+            if (currentSearchRequest) {
+                currentSearchRequest.cancel();
+                currentSearchRequest = null;
+            }
+            
+            // 隐藏所有分页信息，因为搜索时不显示分页
+            const mainPagination = document.querySelector('.pagination');
+            const friendPagination = document.getElementById('friendPagination');
+            const collectPagination = document.getElementById('collectPagination');
+            
+            if (mainPagination) mainPagination.style.display = 'none';
+            if (friendPagination) friendPagination.style.display = 'none';
+            if (collectPagination) collectPagination.style.display = 'none';
+            
             if (!keyword || keyword.trim() === '') {
-                // 如果搜索关键词为空，直接获取所有帖子
-                console.log('搜索关键词为空，获取所有帖子');
-                try {
-                    const response = await axios.get('/api/posts/index');
-                    console.log('获取所有帖子成功，数量:', response.data.length);
-                    const allPosts = response.data;
-                    displaySearchResults(allPosts, '');
-                } catch (error) {
-                    console.error('获取所有帖子失败:', error);
-                    showSearchError('获取帖子失败，请稍后重试');
-                }
+                // 如果搜索关键词为空，恢复到原来的页面状态
+                console.log('搜索关键词为空，恢复到原来的功能:', currentActiveFunction);
+                loadContent(currentActiveFunction);
                 return;
             }
 
@@ -448,7 +488,21 @@
                 contentNext.innerHTML = '<div class="search-loading">搜索中...</div>';
                 
                 console.log('发送搜索请求:', `/api/posts/search?keyword=${encodeURIComponent(keyword)}`);
-                const response = await axios.get(`/api/posts/search?keyword=${encodeURIComponent(keyword)}`);
+                
+                // 创建可取消的请求
+                const CancelToken = axios.CancelToken;
+                const source = CancelToken.source();
+                currentSearchRequest = source;
+                
+                const response = await axios.get(`/api/posts/search?keyword=${encodeURIComponent(keyword)}`, {
+                    cancelToken: source.token
+                });
+                
+                // 检查请求是否被取消
+                if (currentSearchRequest !== source) {
+                    console.log('搜索请求已被取消');
+                    return;
+                }
                 
                 console.log('搜索响应:', response.data);
                 
@@ -461,12 +515,37 @@
                     showSearchError(response.data.message);
                 }
             } catch (error) {
+                if (axios.isCancel(error)) {
+                    console.log('搜索请求被取消');
+                    return;
+                }
                 console.error('搜索失败:', error);
                 console.error('错误详情:', error.response?.data);
                 showSearchError('搜索失败，请稍后重试');
             } finally {
                 isSearching = false;
+                currentSearchRequest = null;
             }
+        }
+
+        // 显示搜索提示
+        function showSearchPrompt() {
+            const contentNext = document.querySelector('.content-next');
+            contentNext.innerHTML = `
+                <div class="search-prompt">
+                    <div class="search-prompt-icon">🔍</div>
+                    <div class="search-prompt-text">请输入你感兴趣的内容</div>
+                </div>
+            `;
+            
+            // 隐藏所有分页信息
+            const mainPagination = document.querySelector('.pagination');
+            const friendPagination = document.getElementById('friendPagination');
+            const collectPagination = document.getElementById('collectPagination');
+            
+            if (mainPagination) mainPagination.style.display = 'none';
+            if (friendPagination) friendPagination.style.display = 'none';
+            if (collectPagination) collectPagination.style.display = 'none';
         }
 
         // 显示搜索结果
@@ -618,16 +697,220 @@
             const clearBtn = document.getElementById('clearBtn');
 
             console.log('搜索组件初始化完成');
+            console.log('清除按钮元素:', clearBtn);
 
             searchInput.addEventListener('input', function() {
                 const keyword = this.value.trim();
                 console.log('搜索输入变化:', keyword);
                 if (keyword) { 
                     clearBtn.style.display = 'block'; 
+                    debouncedSearch(keyword);
                 } else { 
+                    // 当搜索框为空时，直接重新加载页面内容
+                    console.log('搜索框为空，直接重新加载页面内容');
+                    if (searchTimeout) {
+                        clearTimeout(searchTimeout);
+                        searchTimeout = null;
+                    }
+                    if (currentSearchRequest) {
+                        currentSearchRequest.cancel();
+                        currentSearchRequest = null;
+                    }
+                    
+                    // 直接重新加载页面内容，不依赖复杂的状态管理
+                    console.log('开始直接重新加载页面内容');
+                    
+                    // 清空内容区域
+                    const contentNext = document.querySelector('.content-next');
+                    contentNext.innerHTML = '';
+                    console.log('内容区域已清空');
+                    
+                    // 直接调用API获取帖子数据
+                    axios.get('/api/posts/indexLike?page=1&limit=5')
+                        .then(async res => {
+                            console.log('API响应:', res.data);
+                            const posts = res.data.posts || [];
+                            
+                            // 更新分页信息
+                            if (res.data.pagination) {
+                                currentPage = res.data.pagination.currentPage;
+                                totalPages = res.data.pagination.totalPages;
+                                totalPosts = res.data.pagination.totalPosts;
+                                console.log('分页信息已更新:', { currentPage, totalPages, totalPosts });
+                            }
+                            
+                            if (posts.length === 0) {
+                                contentNext.innerHTML = '<div class="search-status">暂无帖子</div>';
+                                console.log('没有找到帖子');
+                                return;
+                            }
+                            
+                            // 渲染帖子
+                            for (let i in posts) {
+                                const post = posts[i];
+                                if (post.type === '帖子') {
+                                    const formatted = new Date(post.time).toLocaleString('zh-CN', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        hour12: false
+                                    });
+
+                                    // 获取用户的关注数和粉丝数
+                                    let userFollowing = 0;
+                                    let userFollowers = 0;
+                                    try {
+                                        const userRes = await axios.get(`/api/accounts/${post.id_user}/accounts`);
+                                        userFollowing = userRes.data.following || 0;
+                                        userFollowers = userRes.data.followers || 0;
+                                    } catch (error) {
+                                        console.error('获取用户关注数据失败:', error);
+                                    }
+
+                                    // 判断是否为贴主
+                                    let deleteBtnHtml = '';
+                                    if (userData && post.id_user == userData.id_user) {
+                                        deleteBtnHtml = `<button class="btn btn-link btn-sm delete-post-btn" data-id="${post.id}">
+                                            <i class="bi bi-trash" style="font-size:20px;color:rgb(207, 185, 137);"></i>
+                                        </button>`;
+                                    }
+
+                                    // 处理图片
+                                    let imagesArr = [];
+                                    try {
+                                        imagesArr = post.images ? JSON.parse(post.images) : [];
+                                    } catch(error) {
+                                        console.error('解析图片数据失败:', error);
+                                        imagesArr = [];
+                                    }
+
+                                    let picturesHtml = '';
+                                    if (imagesArr.length > 0) {
+                                        picturesHtml = `<div class="pictures">` +
+                                            imagesArr.map(img => `<img src="${img}" class="post-image" loading="lazy">`).join('') +
+                                            `</div>`;
+                                    }
+
+                                    const li = document.createElement('li');
+                                    contentNext.appendChild(li);
+                                    
+                                    li.innerHTML = `
+                                    <div class="mulu-top" style="position:relative;">
+                                    ${deleteBtnHtml}
+                                    <div class="mulu">
+                                    <image class="avatar" src=${post.avatar}></image>
+                                                    <div class="list">
+                                                    <div class="divide_row">
+                                                        <a href="javascript:;" class="uname" data-userid="${post.id_user}">${post.name}</a>
+                                                        <div class="information">
+                                                            <div class="divide">
+                                                                <image class="touxiang" src=${post.avatar}></image>
+                                                                <p class="name">${post.name}</p>
+                                                            </div>
+                                                            <div class="people">
+                                                                <p>关注: ${userFollowing}</p>
+                                                                <p>粉丝: ${userFollowers}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <p class="sentences">${post.content}</p>
+                                                    ${picturesHtml}
+                                                    <div class="last">
+                                                        <p class="time">${formatted}</p>
+                                                        <div class="others">
+                                                            <a href="javascript:;" class="like" data-id="${post.id}">❤ 0</a>
+                                                            <a href="javascript:;" class="collect" data-id="${post.id}">⭐ 收藏</a>
+                                                            <a href='javascript:;' class="say" data-id="${post.id}">🖊 评论</a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                        </div>
+                                        <div class="comments hidden" data-id="${post.id}">
+                                        <div class="inputComment">
+                                         <textarea id="my" placeholder="说点什么吧..." maxlength="200"></textarea>
+                                         <button class="submitComment">发送</button>
+                                         </div>
+                                                        <div class="otherComments"></div>
+                                         </div>
+                                        </div>
+                                    `;
+
+                                    // 获取点赞数据并更新显示
+                                    try {
+                                        const likeData = await getLikeData(post.id);
+                                        const likeIcon = li.querySelector('.like');
+                                        likeIcon.innerHTML = `❤${likeData.likeCount}`;
+                                        
+                                        // 只有在登录状态下才检查用户是否已点赞
+                                        if (userData && localStorage.getItem('eleToken')) {
+                                            for (let p in likeData.userIdLike) {
+                                                if (likeData.userIdLike[p] == userData.id_user) {
+                                                    likeIcon.classList.add('active');
+                                                }
+                                            }
+                                        }
+                                    } catch(error) {
+                                        console.error('获取点赞数据失败:', error);
+                                        // 出错时显示默认点赞数
+                                        const likeIcon = li.querySelector('.like');
+                                        likeIcon.innerHTML = `❤0`;
+                                    }
+
+                                    // 获取收藏数据并更新显示
+                                    if (userData && localStorage.getItem('eleToken')) {
+                                        try {
+                                            const collectPost = await getCollectData();
+                                            const collectIcon = li.querySelector('.collect');
+                                            
+                                            for (let m in collectPost) {
+                                                if (collectPost[m].id_from_post == post.id) {
+                                                    collectIcon.classList.add('active');
+                                                }
+                                            }
+                                        } catch(error) {
+                                            console.error('获取收藏数据失败:', error);
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            console.log('帖子渲染完成');
+                            
+                            // 更新分页显示
+                            updatePaginationInfo('post');
+                            console.log('分页信息已更新');
+                        })
+                        .catch(error => {
+                            console.error('获取帖子失败:', error);
+                            contentNext.innerHTML = '<div class="search-status">加载失败，请稍后重试</div>';
+                        });
+                }
+            });
+            
+            // 搜索框点击事件，显示搜索提示和清除按钮
+            searchInput.addEventListener('click', function() {
+                // 显示清除按钮
+                clearBtn.style.display = 'block';
+                console.log('清除按钮已显示');
+                
+                if (!this.value.trim()) {
+                    // 如果搜索框为空且被点击，显示搜索提示
+                    showSearchPrompt();
+                }
+            });
+            
+            // 搜索框获得焦点时显示清除按钮
+            searchInput.addEventListener('focus', function() {
+                clearBtn.style.display = 'block';
+            });
+            
+            // 搜索框失去焦点时，如果没有内容则隐藏清除按钮
+            searchInput.addEventListener('blur', function() {
+                if (!this.value.trim()) {
                     clearBtn.style.display = 'none'; 
                 }
-                debouncedSearch(keyword);
             });
             
             searchBtn.addEventListener('click', function() {
@@ -648,11 +931,204 @@
                 }
             });
             
-            clearBtn.addEventListener('click', function() {
-                console.log('清除搜索');
+            // 测试清除按钮是否可点击
+            clearBtn.addEventListener('mousedown', function(e) {
+                console.log('清除按钮被按下');
+            });
+            
+            clearBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('清除搜索按钮被点击');
+                
+                // 清空搜索框
                 searchInput.value = '';
+                console.log('搜索框已清空');
+                
+                // 隐藏清除按钮
                 clearBtn.style.display = 'none';
-                performSearch(''); // 显示所有帖子
+                console.log('清除按钮已隐藏');
+                
+                // 取消正在进行的搜索请求
+                if (currentSearchRequest) {
+                    currentSearchRequest.cancel();
+                    currentSearchRequest = null;
+                    console.log('搜索请求已取消');
+                }
+                
+                // 直接重新加载页面内容，不依赖复杂的状态管理
+                console.log('开始直接重新加载页面内容');
+                
+                // 清空内容区域
+                const contentNext = document.querySelector('.content-next');
+                contentNext.innerHTML = '';
+                console.log('内容区域已清空');
+                
+                                    // 直接调用API获取帖子数据
+                    axios.get('/api/posts/indexLike?page=1&limit=5')
+                        .then(async res => {
+                            console.log('API响应:', res.data);
+                            const posts = res.data.posts || [];
+                            
+                            // 更新分页信息
+                            if (res.data.pagination) {
+                                currentPage = res.data.pagination.currentPage;
+                                totalPages = res.data.pagination.totalPages;
+                                totalPosts = res.data.pagination.totalPosts;
+                                console.log('分页信息已更新:', { currentPage, totalPages, totalPosts });
+                            }
+                            
+                            if (posts.length === 0) {
+                                contentNext.innerHTML = '<div class="search-status">暂无帖子</div>';
+                                console.log('没有找到帖子');
+                                return;
+                            }
+                            
+                            // 渲染帖子
+                            for (let i in posts) {
+                            const post = posts[i];
+                            if (post.type === '帖子') {
+                                const formatted = new Date(post.time).toLocaleString('zh-CN', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false
+                                });
+
+                                // 获取用户的关注数和粉丝数
+                                let userFollowing = 0;
+                                let userFollowers = 0;
+                                try {
+                                    const userRes = await axios.get(`/api/accounts/${post.id_user}/accounts`);
+                                    userFollowing = userRes.data.following || 0;
+                                    userFollowers = userRes.data.followers || 0;
+                                } catch (error) {
+                                    console.error('获取用户关注数据失败:', error);
+                                }
+
+                                // 判断是否为贴主
+                                let deleteBtnHtml = '';
+                                if (userData && post.id_user == userData.id_user) {
+                                    deleteBtnHtml = `<button class="btn btn-link btn-sm delete-post-btn" data-id="${post.id}">
+                                        <i class="bi bi-trash" style="font-size:20px;color:rgb(207, 185, 137);"></i>
+                                    </button>`;
+                                }
+
+                                // 处理图片
+                                let imagesArr = [];
+                                try {
+                                    imagesArr = post.images ? JSON.parse(post.images) : [];
+                                } catch(error) {
+                                    console.error('解析图片数据失败:', error);
+                                    imagesArr = [];
+                                }
+
+                                let picturesHtml = '';
+                                if (imagesArr.length > 0) {
+                                    picturesHtml = `<div class="pictures">` +
+                                        imagesArr.map(img => `<img src="${img}" class="post-image" loading="lazy">`).join('') +
+                                        `</div>`;
+                                }
+
+                                const li = document.createElement('li');
+                                contentNext.appendChild(li);
+                                
+                                li.innerHTML = `
+                                <div class="mulu-top" style="position:relative;">
+                                ${deleteBtnHtml}
+                                <div class="mulu">
+                                <image class="avatar" src=${post.avatar}></image>
+                                                <div class="list">
+                                                <div class="divide_row">
+                                                    <a href="javascript:;" class="uname" data-userid="${post.id_user}">${post.name}</a>
+                                                    <div class="information">
+                                                        <div class="divide">
+                                                            <image class="touxiang" src=${post.avatar}></image>
+                                                            <p class="name">${post.name}</p>
+                                                        </div>
+                                                        <div class="people">
+                                                            <p>关注: ${userFollowing}</p>
+                                                            <p>粉丝: ${userFollowers}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <p class="sentences">${post.content}</p>
+                                                ${picturesHtml}
+                                                <div class="last">
+                                                    <p class="time">${formatted}</p>
+                                                    <div class="others">
+                                                        <a href="javascript:;" class="like" data-id="${post.id}">❤ 0</a>
+                                                        <a href="javascript:;" class="collect" data-id="${post.id}">⭐ 收藏</a>
+                                                        <a href='javascript:;' class="say" data-id="${post.id}">🖊 评论</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="comments hidden" data-id="${post.id}">
+                                        <div class="inputComment">
+                                         <textarea id="my" placeholder="说点什么吧..." maxlength="200"></textarea>
+                                         <button class="submitComment">发送</button>
+                                         </div>
+                                                        <div class="otherComments"></div>
+                                         </div>
+                                        </div>
+                                    `;
+
+                                // 获取点赞数据并更新显示
+                                try {
+                                    const likeData = await getLikeData(post.id);
+                                    const likeIcon = li.querySelector('.like');
+                                    likeIcon.innerHTML = `❤${likeData.likeCount}`;
+                                    
+                                    // 只有在登录状态下才检查用户是否已点赞
+                                    if (userData && localStorage.getItem('eleToken')) {
+                                        for (let p in likeData.userIdLike) {
+                                            if (likeData.userIdLike[p] == userData.id_user) {
+                                                likeIcon.classList.add('active');
+                                            }
+                                        }
+                                    }
+                                } catch(error) {
+                                    console.error('获取点赞数据失败:', error);
+                                    // 出错时显示默认点赞数
+                                    const likeIcon = li.querySelector('.like');
+                                    likeIcon.innerHTML = `❤0`;
+                                }
+
+                                // 获取收藏数据并更新显示
+                                if (userData && localStorage.getItem('eleToken')) {
+                                    try {
+                                        const collectPost = await getCollectData();
+                                        const collectIcon = li.querySelector('.collect');
+                                        
+                                        for (let m in collectPost) {
+                                            if (collectPost[m].id_from_post == post.id) {
+                                                collectIcon.classList.add('active');
+                                            }
+                                        }
+                                    } catch(error) {
+                                        console.error('获取收藏数据失败:', error);
+                                    }
+                                }
+                            }
+                        }
+                        
+                                                    console.log('帖子渲染完成');
+                            
+                            // 更新分页显示
+                            updatePaginationInfo('post');
+                            console.log('分页信息已更新');
+                    })
+                    .catch(error => {
+                        console.error('获取帖子失败:', error);
+                        contentNext.innerHTML = '<div class="search-status">加载失败，请稍后重试</div>';
+                    });
+                
+                // 让搜索框重新获得焦点
+                searchInput.focus();
+                console.log('搜索框重新获得焦点');
             });
         });
 
@@ -700,8 +1176,10 @@
                 // 退出登录
                 if (logout_click) {
                     logout_click.addEventListener('click', () => {
-                        localStorage.removeItem('eleToken');
-                        localStorage.clear();
+                        // 调用全局退出登录函数
+                        if (window.logout) {
+                            window.logout();
+                        }
                         // 更新显示状态
                         logining.style.display = 'block';
                         userMenu.style.display = 'none';
@@ -987,7 +1465,23 @@
 
     async function getLikeData(postId) {
     try {
-        const res = await axios.get(`/api/posts/like/${postId}`);
+        const token = localStorage.getItem('eleToken');
+        
+        if (!token) {
+            // 未登录状态下，只获取点赞数，不获取用户是否已点赞的信息
+            const res = await axios.get(`/api/posts/like/${postId}`);
+            return { 
+                likeCount: res.data.likeCount || 0, 
+                userIdLike: [] // 未登录时不返回用户点赞信息
+            };
+        }
+        
+        // 登录状态下，获取完整的点赞信息
+        const res = await axios.get(`/api/posts/like/${postId}`, {
+            headers: {
+                'Authorization': token
+            }
+        });
         return res.data;
     } catch (error) {
         console.error('获取点赞数据失败:', error);
@@ -1127,24 +1621,28 @@
                 `;
 
                 // 获取点赞数据并更新显示
-                if (userData) {
-                    try {
-                        const likeData = await getLikeData(post_Datas[i].id);
-                        const likeIcon = li.querySelector('.like');
-                        likeIcon.innerHTML = `❤${likeData.likeCount}`;
-                        
+                try {
+                    const likeData = await getLikeData(post_Datas[i].id);
+                    const likeIcon = li.querySelector('.like');
+                    likeIcon.innerHTML = `❤${likeData.likeCount}`;
+                    
+                    // 只有在登录状态下才检查用户是否已点赞
+                    if (userData && localStorage.getItem('eleToken')) {
                         for (let p in likeData.userIdLike) {
                             if (likeData.userIdLike[p] == userData.id_user) {
                                 likeIcon.classList.add('active');
                             }
                         }
-                    } catch(error) {
-                        console.error('获取点赞数据失败:', error);
                     }
+                } catch(error) {
+                    console.error('获取点赞数据失败:', error);
+                    // 出错时显示默认点赞数
+                    const likeIcon = li.querySelector('.like');
+                    likeIcon.innerHTML = `❤0`;
                 }
 
                 // 获取收藏数据并更新显示
-                if (userData) {
+                if (userData && localStorage.getItem('eleToken')) {
                     try {
                         const collectPost = await getCollectData();
                         const collectIcon = li.querySelector('.collect');
@@ -1426,10 +1924,31 @@ async function checkUnreadMessages() {
 
 // 页面加载完成时初始化内容
 document.addEventListener('DOMContentLoaded', async () => {
-    // 检查未读消息并更新红点状态
-    await checkUnreadMessages();
+    // 检查登录状态
+    const token = localStorage.getItem('eleToken');
+    const userDataStr = localStorage.getItem('user_data');
     
-    // 加载关注列表
+    if (token && userDataStr) {
+        try {
+            // 重新解析用户数据，确保数据是最新的
+            userData = JSON.parse(userDataStr);
+            
+            // 检查未读消息并更新红点状态
+            await checkUnreadMessages();
+        } catch (e) {
+            console.error('解析用户数据失败:', e);
+            // 清除无效数据
+            localStorage.removeItem('eleToken');
+            localStorage.removeItem('user_data');
+            userData = null;
+        }
+    } else {
+        // 未登录状态，清除可能残留的用户数据
+        userData = null;
+        console.log('未登录状态，跳过用户相关功能');
+    }
+    
+    // 无论是否登录，都加载关注列表（会显示相应的提示信息）
     await loadFollowingList();
     
     // 获取当前URL路径
@@ -1445,7 +1964,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentSortMode = 'like'; // 设置默认排序状态
         likeDesc.classList.add('active'); // 激活最热按钮
         timeDesc.classList.remove('active'); // 取消最新按钮激活状态
-        await getPosts('like', 1);
+        await getPosts('like', 1); // 加载帖子
     }
     
     // 更新导航栏active状态
@@ -1873,8 +2392,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         
                                         try {
                                             const commentData = {
-                                                name: userData.name,
-                                                avatar: userData.avatar,
                                                 content: content,
                                                 id_user: userData.id_user,
                                                 id_from_post: postId
@@ -2025,7 +2542,25 @@ Array.from(forms).forEach(form=>{
         const newContent = document.getElementById('content');
         const newType = document.getElementById('contentType');
         
+        console.log('=== 表单数据检查 ===');
+        console.log('newContent元素:', newContent);
+        console.log('newType元素:', newType);
+        console.log('newContent.value:', newContent ? newContent.value : '元素不存在');
+        console.log('newType.value:', newType ? newType.value : '元素不存在');
+        console.log('newContent.value.trim():', newContent ? newContent.value.trim() : '元素不存在');
+        
+        if(!newContent || !newType) {
+            console.error('❌ 表单元素未找到');
+            danger.textContent = '表单元素未找到';
+            danger.style.display = 'block';
+            setTimeout(()=>{
+                danger.style.display = 'none';
+            },5000);
+            return;
+        }
+        
         if(newContent.value.trim()==""){
+            console.error('❌ 内容为空');
             danger.textContent = '内容不能为空';
             danger.style.display = 'block';
             setTimeout(()=>{
@@ -2034,23 +2569,59 @@ Array.from(forms).forEach(form=>{
             return;
         }
 
+        console.log('=== 构建FormData ===');
         const formData = new FormData();
-        formData.append('name', userData.name);
-        formData.append('content', newContent.value.trim());
-        formData.append('avatar', userData.avatar);
-        formData.append('type', newType.value);
-        formData.append('id_user', userData.id_user);
-        formData.append('time', new Date().toISOString());
+        
+        const contentValue = newContent.value.trim();
+        const typeValue = newType.value;
+        const timeValue = new Date().toISOString();
+        
+        console.log('准备添加的数据:');
+        console.log('- content:', contentValue);
+        console.log('- type:', typeValue);
+        console.log('- time:', timeValue);
+        
+        formData.append('content', contentValue);
+        formData.append('type', typeValue);
+        formData.append('time', timeValue);
+        
         selectedImages.forEach((img, idx) => {
+            console.log(`- 添加图片 ${idx}:`, img.file.name);
             formData.append('images', img.file);
+        });
+
+        // 验证FormData内容
+        console.log('=== FormData验证 ===');
+        console.log('FormData条目数:', formData.entries ? '可用' : '不可用');
+        
+        // 调试信息
+        console.log('表单数据:', {
+            content: contentValue,
+            type: typeValue,
+            time: timeValue,
+            imagesCount: selectedImages.length
         });
 
         try {
             console.log('发送请求的用户数据:', userData);
+            console.log('用户登录状态:', !!localStorage.getItem('eleToken'));
+            console.log('用户数据状态:', !!userData);
+            
+            // 检查认证头
+            const headers = {
+                'Content-Type': 'multipart/form-data'
+            };
+            
+            const token = localStorage.getItem('eleToken');
+            if (token) {
+                headers['Authorization'] = token;
+                console.log('添加认证头:', token.substring(0, 20) + '...');
+            } else {
+                console.log('⚠️ 没有找到认证token');
+            }
+            
             // 使用封装后的request方法发送请求
-            const res = await axios.post('/api/posts/add', formData, {
-                    headers: {'Content-Type': 'multipart/form-data'}
-                    });
+            const res = await axios.post('/api/posts/add', formData, { headers });
             
             console.log('发布响应:', res);
             
@@ -2075,9 +2646,11 @@ Array.from(forms).forEach(form=>{
             },5000);
         }
     });
-});
+    });
 
-// 图片上传与预览
+
+
+    // 图片上传与预览
 let selectedImages = [];
 
 const imageInput = document.getElementById('imageInput');
@@ -2315,6 +2888,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // 页面初始化时不需要显示搜索提示，因为上面的初始化逻辑已经处理了
+    // showSearchPrompt();
 });
 
     </script>

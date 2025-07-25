@@ -25,6 +25,22 @@ router.get('/login', (req, res) => {
     }
   });
 });
+
+// 用户个人主页路由 - 放在 /personal 之前，因为更具体
+router.get('/personal/:id', (req, res) => {
+  console.log('访问个人主页，用户ID:', req.params.id);
+  const filePath = path.join(__dirname, '../front-end/views/personal.html');
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('文件发送错误:', err);
+      console.log('尝试访问的文件路径:', filePath);
+      res.status(500).send('无法加载个人主页');
+    } else {
+      console.log('个人主页文件发送成功');
+    }
+  });
+});
+
 router.get('/personal', (req, res) => {
   const filePath = path.join(__dirname, '../front-end/views/personal.html');
   res.sendFile(filePath, (err) => {
@@ -95,5 +111,7 @@ router.get('/post-detail/:id', (req, res) => {
     }
   });
 });
+
+
 
 module.exports = router;

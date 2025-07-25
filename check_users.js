@@ -1,29 +1,20 @@
-const mysql = require('mysql');
+const db = require('./database/index');
 
-const db = mysql.createPool({
-    host: '127.0.0.1',
-    user: 'root',
-    password: 'admin123',
-    database: 'user_db'
-});
+console.log('检查数据库中的用户...');
 
-console.log('检查所有用户信息...');
-
-db.query('SELECT id_user, name, phone, avatar FROM user ORDER BY id_user', (err, results) => {
+db.query('SELECT id_user, name, phone FROM user LIMIT 10', (err, results) => {
     if (err) {
-        console.error('查询失败:', err);
+        console.error('查询用户失败:', err);
         return;
     }
     
-    console.log('\n所有用户信息:');
-    results.forEach(user => {
-        console.log(`ID: ${user.id_user}, 名称: ${user.name}, 手机: ${user.phone}, 头像: ${user.avatar}`);
+    console.log('数据库中的用户:');
+    results.forEach((user, index) => {
+        console.log(`${index + 1}. ID: ${user.id_user}, 用户名: ${user.name}, 手机: ${user.phone}`);
     });
     
-    // 检查哪个用户有更新后的头像
-    const updatedUser = results.find(user => user.avatar.includes('avatar_2_1753361592843.webp'));
-    if (updatedUser) {
-        console.log(`\n找到更新头像的用户: ID=${updatedUser.id_user}, 名称=${updatedUser.name}`);
+    if (results.length === 0) {
+        console.log('数据库中没有用户数据');
     }
     
     process.exit(0);

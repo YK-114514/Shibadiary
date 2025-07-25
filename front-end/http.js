@@ -1,11 +1,58 @@
 //import axios from 'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js'
 
+// 全局变量：记录上一次登录状态
+let lastLoginStatus = false;
+let hasShownTokenExpiredAlert = false; // 防止重复弹窗
+
 // 创建遮罩层元素和加载动画
 let overlayElement;
 let loadingElement;
 
+// 检查是否已登录
+function isLoggedIn() {
+    return !!localStorage.getItem('eleToken');
+}
+
+// 初始化登录状态
+function initializeLoginStatus() {
+    lastLoginStatus = isLoggedIn();
+    hasShownTokenExpiredAlert = false;
+}
+
+// 处理token失效
+function handleTokenExpired() {
+    // 只有在"刚刚失效"时才弹窗
+    if (lastLoginStatus && !hasShownTokenExpiredAlert) {
+        alert('token已失效，请重新登录');
+        hasShownTokenExpiredAlert = true;
+    }
+    
+    // 清理存储
+    try {
+        localStorage.removeItem('eleToken');
+        console.log('Token已清除');
+        
+        sessionStorage.removeItem('user_data');
+        localStorage.removeItem('user_data');
+        console.log('用户数据已清除');
+        
+        // 更新登录状态
+        lastLoginStatus = false;
+        
+        // 立即刷新页面，让所有地方都恢复到未登录状态
+        window.location.reload();
+    } catch (e) {
+        console.error('清理存储时出错:', e);
+        // 即使出错也要刷新页面
+        window.location.reload();
+    }
+}
+
 // 等待 DOM 加载完成
 document.addEventListener('DOMContentLoaded', () => {
+    // 初始化登录状态
+    initializeLoginStatus();
+    
     // 创建遮罩层元素
     overlayElement = document.createElement('div');
     overlayElement.style.cssText = `
@@ -82,35 +129,12 @@ axios.interceptors.response.use(
             // 处理401未授权错误
             if (status === 401) {
                 console.log('Token失效，清理存储');
-                // 按顺序清理存储的数据
-                try {
-                    localStorage.removeItem('eleToken');
-                    console.log('Token已清除');
-                    
-                    sessionStorage.removeItem('user_data');
-                    console.log('用户数据已清除');
-                    
-                   
-                    
-                    return Promise.reject('登录已过期，请重新登录');
-                } catch (e) {
-                    console.error('清理存储时出错:', e);
-                }
+                handleTokenExpired();
+                return Promise.reject('登录已过期，请重新登录');
             }
             
             // 处理其他错误
             return Promise.reject(error.response.data || '请求失败');
-        }
-        
-        if (error.response && error.response.status === 401) {
-            // token失效
-            if (confirm('token失效，请重新登录哦')) {
-                // 清除本地存储的token和用户信息
-                localStorage.removeItem('eleToken');
-                localStorage.removeItem('user_data');
-                // 跳转到登录页面
-                window.location.href = '/login';
-            }
         }
         
         return Promise.reject(error);
@@ -141,5 +165,24 @@ function request(config) {
       ...config
     });
   };
+
+  // 登录成功时调用
+  function loginSuccess() {
+    lastLoginStatus = true;
+    hasShownTokenExpiredAlert = false;
+  }
+
+  // 主动退出登录时调用
+  function logout() {
+    if (lastLoginStatus) {
+      alert('token已失效，请重新登录');
+    }
+    handleTokenExpired();
+  }
+
+  // 暴露给全局使用
+  window.loginSuccess = loginSuccess;
+  window.logout = logout;
+  window.handleTokenExpired = handleTokenExpired;
 
   //export default request

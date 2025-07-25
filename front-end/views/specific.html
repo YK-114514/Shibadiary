@@ -389,6 +389,26 @@
     </div>
 
     <script>
+        // 检查登录状态，如果未登录则跳转到登录页面
+        (function checkLoginStatus() {
+            const token = localStorage.getItem('eleToken');
+            const userData = localStorage.getItem('user_data');
+            
+            if (!token || !userData) {
+                console.log('未登录，跳转到登录页面');
+                window.location.href = '/login';
+                return;
+            }
+            
+            try {
+                JSON.parse(userData);
+            } catch (e) {
+                console.log('用户数据格式错误，跳转到登录页面');
+                window.location.href = '/login';
+                return;
+            }
+        })();
+
         const userD = localStorage.getItem('user_data');
         let userData = null;
         try {
@@ -430,8 +450,10 @@
             // 退出登录
             if (logout_click) {
                 logout_click.addEventListener('click', () => {
-                    localStorage.removeItem('eleToken');
-                    localStorage.clear();
+                    // 调用全局退出登录函数
+                    if (window.logout) {
+                        window.logout();
+                    }
                     if (logining) logining.style.display = 'block';
                     if (userMenu) userMenu.style.display = 'none';
                     if (userDropdown) userDropdown.classList.remove('show');

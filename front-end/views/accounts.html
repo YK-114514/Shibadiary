@@ -41,8 +41,25 @@
 </html>
 
 <script>
-
-
+    // 检查登录状态，如果未登录则跳转到登录页面
+    (function checkLoginStatus() {
+        const token = localStorage.getItem('eleToken');
+        const userData = localStorage.getItem('user_data');
+        
+        if (!token || !userData) {
+            console.log('未登录，跳转到登录页面');
+            window.location.href = '/login';
+            return;
+        }
+        
+        try {
+            JSON.parse(userData);
+        } catch (e) {
+            console.log('用户数据格式错误，跳转到登录页面');
+            window.location.href = '/login';
+            return;
+        }
+    })();
 
 const avatarGet = document.querySelector('.profile')
 const nameGet = document.querySelector('.name')
@@ -64,6 +81,7 @@ console.log(userId)
 
     async function getAllData(){
         try{
+            console.log('正在请求用户数据，用户ID:', userId);
             const res = await axios.get(`/api/accounts/${userId}/accounts`)
             console.log('API Response:', res.data)
 
@@ -119,7 +137,9 @@ console.log(userId)
 
             return allData;   
         }catch(error){
-            console.log(error)
+            console.error('获取用户数据失败:', error);
+            console.error('错误详情:', error.response?.data);
+            console.error('错误状态:', error.response?.status);
             return[]
         }
     }

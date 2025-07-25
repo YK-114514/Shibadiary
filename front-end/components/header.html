@@ -90,8 +90,10 @@
                 // 退出登录
                 if (logout_click) {
                     logout_click.addEventListener('click', () => {
-                        localStorage.removeItem('eleToken');
-                        localStorage.clear();
+                        // 调用全局退出登录函数
+                        if (window.logout) {
+                            window.logout();
+                        }
                         // 更新显示状态
                         logining.style.display = 'block';
                         userMenu.style.display = 'none';

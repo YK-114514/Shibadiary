@@ -4,7 +4,12 @@ const passport = require('passport')
 const jwt = require('jsonwebtoken');
 const db = require('../../database/index')
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' }); // 保存到本地 uploads 目录
+const upload = multer({ 
+    dest: 'uploads/',
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 限制文件大小为10MB
+    }
+}); // 保存到本地 uploads 目录
 
 console.log('✅ posts路由模块加载');
 
@@ -32,6 +37,8 @@ function toMysqlDatetime(date) {
         String(d.getSeconds()).padStart(2, '0');
 }
 
+
+
 //获取好友（关注的人）的帖子
 router.get('/friends', passport.authenticate('jwt', { session: false }), async (req, res) => {
     try {
@@ -57,9 +64,11 @@ router.get('/friends', passport.authenticate('jwt', { session: false }), async (
         // 获取关注的人的帖子
         const placeholders = followingArr.map(() => '?').join(',');
         const sqlStr = `
-            SELECT * FROM post_infom 
-            WHERE id_user IN (${placeholders}) 
-            ORDER BY time DESC
+            SELECT p.*, u.name, u.avatar 
+            FROM post_infom p
+            LEFT JOIN user u ON p.id_user = u.id_user
+            WHERE p.id_user IN (${placeholders}) 
+            ORDER BY p.time DESC
         `;
         
         console.log('执行SQL查询:', sqlStr);
@@ -90,15 +99,17 @@ router.get('/search', (req, res) => {
     
     const searchKeyword = `%${keyword}%`;
     const sqlStr = `
-        SELECT * FROM post_infom 
-        WHERE (name LIKE ? OR content LIKE ?) 
-        ORDER BY time DESC
+        SELECT p.*, u.name, u.avatar 
+        FROM post_infom p
+        LEFT JOIN user u ON p.id_user = u.id_user
+        WHERE (p.content LIKE ?) 
+        ORDER BY p.time DESC
     `;
     
     console.log('执行SQL查询:', sqlStr);
-    console.log('查询参数:', [searchKeyword, searchKeyword]);
+    console.log('查询参数:', [searchKeyword]);
     
-    db.query(sqlStr, [searchKeyword, searchKeyword], (err, results) => {
+    db.query(sqlStr, [searchKeyword], (err, results) => {
         if (err) {
             console.log('搜索错误:', err.message);
             return res.status(500).json({ success: false, message: '搜索失败' });
@@ -134,7 +145,7 @@ router.get('/index', (req, res) => {
         console.log('首页分页计算结果:', { total, totalPages, currentPage: page });
         
         // 获取分页帖子
-        db.query('SELECT * FROM post_infom ORDER BY time DESC LIMIT ? OFFSET ?', 
+        db.query('SELECT p.*, u.name, u.avatar FROM post_infom p LEFT JOIN user u ON p.id_user = u.id_user ORDER BY p.time DESC LIMIT ? OFFSET ?', 
             [limit, offset], (err, results) => {
             if (err) throw err
             
@@ -188,9 +199,10 @@ router.get('/indexLike', (req, res) => {
         
         // 获取分页帖子（按点赞数排序）
         const sqlStr = `
-            SELECT post_infom.*, 
-                   (SELECT COUNT(*) FROM likes WHERE likes.id_from_post = post_infom.id) as likeCount 
-            FROM post_infom 
+            SELECT p.*, u.name, u.avatar,
+                   (SELECT COUNT(*) FROM likes WHERE likes.id_from_post = p.id) as likeCount 
+            FROM post_infom p
+            LEFT JOIN user u ON p.id_user = u.id_user
             ORDER BY likeCount DESC 
             LIMIT ? OFFSET ?
         `;
@@ -272,7 +284,7 @@ router.get('/:postId/comments',(req,res)=>{
 router.get('/:postId',(req,res)=>{
     const postId = req.params.postId
     
-    const sqlStr = 'select * from post_infom where id=?'
+    const sqlStr = 'select p.*, u.name, u.avatar from post_infom p LEFT JOIN user u ON p.id_user = u.id_user where p.id=?'
     db.query(sqlStr,[postId],(err,results)=>{
         if(err){
             console.log('获取帖子详情错误:', err.message)
@@ -302,21 +314,49 @@ router.post(
     }
 
     // 检查内容
-    const name = req.body?.name;
     const content = req.body?.content;
     const type = req.body?.type;
 
-    if (!name || !content || !type) {
-        return res.status(400).json('缺少必要字段');
+    console.log('=== 后端接收数据详情 ===');
+    console.log('请求方法:', req.method);
+    console.log('请求URL:', req.url);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Authorization:', req.headers.authorization ? '存在' : '不存在');
+    console.log('收到的数据:', {
+        content: content,
+        type: type,
+        bodyKeys: Object.keys(req.body),
+        bodyValues: req.body,
+        bodyType: typeof req.body,
+        bodyStringified: JSON.stringify(req.body),
+        filesCount: req.files ? req.files.length : 0,
+        files: req.files
+    });
+    console.log('req.body类型:', typeof req.body);
+    console.log('req.body是否为对象:', req.body && typeof req.body === 'object');
+    console.log('req.body键值对:');
+    for (let key in req.body) {
+        console.log(`  ${key}: ${req.body[key]} (类型: ${typeof req.body[key]})`);
+    }
+
+    if (!content || !type) {
+            console.log('缺少字段详情:', { 
+        content: !!content, 
+        type: !!type,
+        contentValue: content,
+        typeValue: type,
+        bodyKeys: Object.keys(req.body),
+        bodyValues: req.body
+    });
+    return res.status(400).json(`缺少必要字段: content=${!!content}, type=${!!type}`);
     }
 
     const imagePaths = req.files.map(file => '/uploads/' + file.filename);
     const imagesJson = JSON.stringify(imagePaths);
 
-    const avatar = req.user.avatar || '/images/default_avatar.jpg';
     const time = req.body?.time ? toMysqlDatetime(req.body.time) : toMysqlDatetime(new Date());
-    const sqlInsert = 'insert into post_infom (name,content,images,type,id_user,avatar,time) values (?,?,?,?,?,?,?)'
-    db.query(sqlInsert,[name,content,imagesJson,type,req.user.id_user,avatar,time],(err,result)=>{
+    const sqlInsert = 'insert into post_infom (content,images,type,id_user,time) values (?,?,?,?,?)'
+    db.query(sqlInsert,[content,imagesJson,type,req.user.id_user,time],(err,result)=>{
         if(err) {
             console.log('数据库插入错误:', err.message)
             return res.status(500).json(err.message)
@@ -334,13 +374,21 @@ router.post('/comments', passport.authenticate('jwt', { session: false }), async
         console.log('用户信息:', req.user);
         
         const addComment = {};
-        if (req.body.name) addComment.name = req.body.name;
         if (req.body.content) addComment.content = req.body.content;
-        if (req.body.avatar) addComment.avatar = req.body.avatar;
         if (req.body.id_from_post) addComment.id_from_post = req.body.id_from_post;
         if (req.body.id_user) addComment.id_user = req.body.id_user;
         addComment.parent_id = req.body.parent_id || null;
         addComment.parent_user_id = req.body.parent_user_id || null;
+        
+        // 从用户表获取用户信息
+        const userResult = await query('SELECT name, avatar FROM user WHERE id_user = ?', [addComment.id_user]);
+        if (userResult.length > 0) {
+            addComment.name = userResult[0].name;
+            addComment.avatar = userResult[0].avatar;
+        } else {
+            addComment.name = '未知用户';
+            addComment.avatar = '/images/default_avatar.jpg';
+        }
 
         // 查询帖子作者 ID
         const postResult = await query('SELECT id_user FROM post_infom WHERE id = ?', [addComment.id_from_post]);
@@ -635,7 +683,7 @@ router.delete('/:id', passport.authenticate('jwt', { session: false }), (req, re
     const userId = req.user.id_user;
     
     // 查询该帖子是否属于当前用户
-    db.query('SELECT * FROM post_infom WHERE id = ?', [postId], (err, rows) => {
+    db.query('SELECT p.*, u.name, u.avatar FROM post_infom p LEFT JOIN user u ON p.id_user = u.id_user WHERE p.id = ?', [postId], (err, rows) => {
         if (err) {
             return res.status(500).json({ code: 1, msg: '数据库查询错误' });
         }

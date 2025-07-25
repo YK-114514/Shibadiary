@@ -22,7 +22,7 @@ router.get('/personal', passport.authenticate('jwt', {session: false}), (req, re
         console.log('分页计算结果:', { total, totalPages, currentPage: page });
         
         // 获取用户帖子（分页）
-        db.query('SELECT * FROM post_infom WHERE id_user = ? ORDER BY time DESC LIMIT ? OFFSET ?', 
+        db.query('SELECT p.*, u.name, u.avatar FROM post_infom p LEFT JOIN user u ON p.id_user = u.id_user WHERE p.id_user = ? ORDER BY p.time DESC LIMIT ? OFFSET ?', 
             [req.user.id_user, limit, offset], (err, results) => {
             if (err) throw err
 

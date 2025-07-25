@@ -645,14 +645,20 @@ margin-top:30px;
     position:fixed;
     width: 60px;
     height: 60px;
-   left:1150px;
-    bottom:80px;
+    left: 30px;
+    bottom: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    z-index: 1000;
     
 }
 .adding:hover{
 
     width: 65px;
     height: 65px;
+    transform: scale(1.1);
+    transition: all 0.3s ease;
 }
 .adding.none{
     display:none
@@ -1090,60 +1096,103 @@ nav[aria-label="Page navigation"] {
 
 .search-bar-demo {
     width: 750px;
-    margin-left:15px;
-    
+    margin-left: 15px;
     display: flex;
     align-items: center;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(224, 150, 32, 0.08);
-    padding: 8px 18px;
+    background: transparent;
+    border: none;
+    border-radius: 15px;
+    padding: 12px 20px;
     position: relative;
-   
-    
+    font-family: '微软雅黑', 'STHeiti', '黑体', 'Arial Rounded MT Bold', 'Arial', sans-serif;
 }
 
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+
+
 .search-input-demo {
-    border: 1px solid #ddd;
-    border-radius: 20px;
-    padding: 8px 15px;
-    width: 300px;
+    border: 2px solid #c68317;
+    border-radius: 12px;
+    padding: 10px 15px;
+    width: 100%;
     outline: none;
-    transition: border-color 0.3s;
+    background: #fffdf9;
+    font-size: 15px;
+    color: #c68317;
+    transition: all 0.3s ease;
+    font-family: '微软雅黑', 'STHeiti', '黑体', 'Arial Rounded MT Bold', 'Arial', sans-serif;
 }
 
 .search-input-demo:focus {
-    border-color: #007bff;
+    border-color: #e09620;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(198, 131, 23, 0.1);
+}
+
+.search-input-demo::placeholder {
+    color: #c68317;
+    opacity: 0.7;
+    font-style: italic;
 }
 
 .search-btn-demo {
-    background: #007bff;
+    background: linear-gradient(145deg, #ffb347, #ffcc33);
     color: white;
-    border: none;
-    border-radius: 20px;
-    padding: 8px 15px;
+    border: 2px solid #c68317;
+    border-radius: 12px;
+    padding: 10px 15px;
     margin-left: 10px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-family: '微软雅黑', 'STHeiti', '黑体', 'Arial Rounded MT Bold', 'Arial', sans-serif;
+    box-shadow: 0 2px 6px rgba(198, 131, 23, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.search-btn-demo::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.2), transparent);
+    border-radius: 8px;
+    pointer-events: none;
 }
 
 .search-btn-demo:hover {
-    background: #0056b3;
+    background: linear-gradient(145deg, #ffcc33, #ffb347);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(198, 131, 23, 0.3);
 }
 
 .clear-btn-demo {
-    background: #dc3545;
+    background: linear-gradient(145deg, #ff6b6b, #ff5252);
     color: white;
-    border: none;
-    border-radius: 20px;
-    padding: 8px 15px;
+    border: 2px solid #c68317;
+    border-radius: 12px;
+    padding: 10px 15px;
     margin-left: 10px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-family: '微软雅黑', 'STHeiti', '黑体', 'Arial Rounded MT Bold', 'Arial', sans-serif;
+    box-shadow: 0 2px 6px rgba(198, 131, 23, 0.2);
 }
 
 .clear-btn-demo:hover {
-    background: #c82333;
+    background: linear-gradient(145deg, #ff5252, #ff6b6b);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(198, 131, 23, 0.3);
 }
 
 /* 关键词高亮样式 */
@@ -1193,6 +1242,35 @@ nav[aria-label="Page navigation"] {
     text-align: center;
     padding: 20px;
     color: #007bff;
+}
+
+/* 搜索提示样式 */
+.search-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    color: #c68317;
+    background: #fffdfa;
+    border-radius: 12px;
+    border: 1.5px solid #f7e7c6;
+    margin: 20px 0;
+    box-shadow: 0 2px 8px rgba(198, 131, 23, 0.1);
+}
+
+.search-prompt-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.7;
+}
+
+.search-prompt-text {
+    font-size: 18px;
+    font-weight: 500;
+    color: #c68317;
+    font-family: '微软雅黑', 'STHeiti', '黑体', 'Arial Rounded MT Bold', 'Arial', sans-serif;
 }
 
 .search-loading::after {
@@ -1371,6 +1449,37 @@ nav[aria-label="Page navigation"] {
     .sidebar-name {
         font-size: 13px;
         max-width: 120px;
+    }
+    
+    /* 移动设备上的添加按钮 */
+    .adding {
+        width: 50px;
+        height: 50px;
+        left: 20px;
+        bottom: 20px;
+    }
+    
+    .adding:hover {
+        width: 55px;
+        height: 55px;
+    }
+    
+    /* 移动设备上的搜索框 */
+    .search-bar-demo {
+        width: 100%;
+        margin-left: 0;
+        padding: 8px 15px;
+    }
+    
+    .search-input-demo {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+    
+    .search-btn-demo,
+    .clear-btn-demo {
+        padding: 8px 12px;
+        font-size: 14px;
     }
 }
 

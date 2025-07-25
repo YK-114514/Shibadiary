@@ -58,6 +58,26 @@
 </html>
 
 <script>
+    // 检查登录状态，如果未登录则跳转到登录页面
+    (function checkLoginStatus() {
+        const token = localStorage.getItem('eleToken');
+        const userData = localStorage.getItem('user_data');
+        
+        if (!token || !userData) {
+            console.log('未登录，跳转到登录页面');
+            window.location.href = '/login';
+            return;
+        }
+        
+        try {
+            JSON.parse(userData);
+        } catch (e) {
+            console.log('用户数据格式错误，跳转到登录页面');
+            window.location.href = '/login';
+            return;
+        }
+    })();
+
     // 获取DOM元素
     const avatarGet = document.querySelector('.profile')
     const nameGet = document.querySelector('.name')
@@ -69,7 +89,33 @@
     const prevPageBtn = document.getElementById('prevPage')
     const nextPageBtn = document.getElementById('nextPage')
 
-    // 获取个人信息localStorage
+    // 获取URL中的用户ID
+    function getUserIdFromUrl() {
+        const pathParts = window.location.pathname.split('/');
+        const userId = pathParts[pathParts.length - 1];
+        console.log('从URL获取用户ID:', userId);
+        
+        // 如果最后一段是"personal"，说明是访问自己的个人页面
+        if (userId === 'personal') {
+            // 从localStorage获取当前登录用户的ID
+            const userData = localStorage.getItem('user_data');
+            if (userData) {
+                try {
+                    const parsedUserData = JSON.parse(userData);
+                    console.log('使用当前登录用户ID:', parsedUserData.id_user);
+                    return parsedUserData.id_user;
+                } catch (e) {
+                    console.error('解析用户数据失败:', e);
+                    return null;
+                }
+            }
+            return null;
+        }
+        
+        return userId;
+    }
+
+    // 获取个人信息localStorage（当前登录用户）
     const userD = localStorage.getItem('user_data')
     let user_data = null;
     try {
@@ -78,7 +124,52 @@
         console.error('解析用户数据失败:', e);
     }
 
-    // 从数据库获取最新的用户信息
+    // 从数据库获取指定用户的信息
+    async function fetchUserData(userId) {
+        try {
+            // 使用现有的accounts API来获取用户信息
+            const response = await axios.get(`/api/accounts/${userId}/accounts`);
+            console.log('用户数据API响应:', response.data);
+            
+            // 从posts中获取用户信息（如果posts不为空）
+            if (response.data.posts && response.data.posts.length > 0) {
+                const firstPost = response.data.posts[0];
+                const userData = {
+                    id_user: firstPost.id_user,
+                    name: firstPost.name,
+                    avatar: firstPost.avatar
+                };
+                
+                console.log('已从数据库获取用户信息:', userData);
+                return userData;
+            } else {
+                // 如果用户没有帖子，从localStorage获取当前用户信息作为备选
+                console.log('用户没有帖子，使用localStorage中的用户信息');
+                const userData = localStorage.getItem('user_data');
+                if (userData) {
+                    try {
+                        const parsedUserData = JSON.parse(userData);
+                        // 验证用户ID是否匹配
+                        if (parsedUserData.id_user == userId) {
+                            return {
+                                id_user: parsedUserData.id_user,
+                                name: parsedUserData.name,
+                                avatar: parsedUserData.avatar
+                            };
+                        }
+                    } catch (e) {
+                        console.error('解析localStorage用户数据失败:', e);
+                    }
+                }
+                return null;
+            }
+        } catch (error) {
+            console.error('获取用户信息失败:', error);
+            return null;
+        }
+    }
+
+    // 从数据库获取最新的当前登录用户信息
     async function fetchLatestUserData() {
         const token = localStorage.getItem('eleToken');
         if (!token) {
@@ -209,41 +300,80 @@
     // 获取个人数据
     async function getPersonal(page = 1) {
         try {
-            const res = await axios.get(`/api/personal/personal?page=${page}&limit=5`)
-            console.log('API Response:', res.data) // 添加调试日志
-
-            // 正确使用返回的数据结构
-            allData = res.data.posts || []
-
-            // 设置关注数和粉丝数，如果为null则显示0
-            const following = res.data.following || 0
-            const followers = res.data.followers || 0
-            statsElement.innerHTML = `关注: ${following} | 粉丝: ${followers}`
-
-            // 确保使用最新的用户信息
-            const latestUserData = await fetchLatestUserData() || user_data;
-
-            // 设置头像和名字
-            nameGet.innerHTML = latestUserData.name
-            avatarGet.src = latestUserData.avatar
-
-            // 更新分页信息
-            if (res.data.pagination) {
-                currentPage = res.data.pagination.currentPage
-                totalPages = res.data.pagination.totalPages
-                totalPosts = res.data.pagination.totalPosts
-                
-                updatePaginationInfo()
-                updatePaginationControls()
+            // 获取URL中的用户ID
+            const targetUserId = getUserIdFromUrl();
+            console.log('目标用户ID:', targetUserId);
+            
+            if (!targetUserId) {
+                console.error('无法获取用户ID');
+                return [];
+            }
+            
+            // 获取目标用户的信息
+            const targetUserData = await fetchUserData(targetUserId);
+            if (!targetUserData) {
+                console.error('无法获取目标用户信息');
+                // 如果无法获取用户信息，尝试使用localStorage中的当前用户信息
+                const currentUserData = localStorage.getItem('user_data');
+                if (currentUserData) {
+                    try {
+                        const parsedUserData = JSON.parse(currentUserData);
+                        if (parsedUserData.id_user == targetUserId) {
+                            console.log('使用localStorage中的用户信息');
+                            nameGet.innerHTML = parsedUserData.name;
+                            avatarGet.src = parsedUserData.avatar;
+                        } else {
+                            console.error('用户ID不匹配');
+                            return [];
+                        }
+                    } catch (e) {
+                        console.error('解析localStorage用户数据失败:', e);
+                        return [];
+                    }
+                } else {
+                    console.error('localStorage中没有用户数据');
+                    return [];
+                }
+            } else {
+                // 设置头像和名字（显示目标用户的信息）
+                nameGet.innerHTML = targetUserData.name;
+                avatarGet.src = targetUserData.avatar;
             }
 
-            // 渲染帖子
-            renderPosts(allData)
+            // 获取目标用户的帖子
+            const res = await axios.get(`/api/accounts/${targetUserId}/accounts`);
+            console.log('API Response:', res.data);
 
-            return allData
+            // 正确使用返回的数据结构
+            allData = res.data.posts || [];
+
+            // 设置关注数和粉丝数，如果为null则显示0
+            const following = res.data.following || 0;
+            const followers = res.data.followers || 0;
+            statsElement.innerHTML = `关注: ${following} | 粉丝: ${followers}`;
+
+            // 由于现有API没有分页功能，我们手动处理分页
+            const allPosts = res.data.posts || [];
+            const postsPerPage = 5;
+            const startIndex = (page - 1) * postsPerPage;
+            const endIndex = startIndex + postsPerPage;
+            
+            // 分页处理
+            allData = allPosts.slice(startIndex, endIndex);
+            currentPage = page;
+            totalPages = Math.ceil(allPosts.length / postsPerPage);
+            totalPosts = allPosts.length;
+            
+            updatePaginationInfo();
+            updatePaginationControls();
+
+            // 渲染帖子
+            renderPosts(allData);
+
+            return allData;
         } catch(error) {
-            console.log(error)
-            return []
+            console.error('获取个人数据失败:', error);
+            return [];
         }
     }
 
