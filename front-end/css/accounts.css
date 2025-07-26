@@ -110,58 +110,128 @@ body {
     max-width: 850px;
 }
 
+/* 重新设计的帖子卡片样式 - 和personal页面保持一致 */
 .mulu-top {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 32px rgba(198, 131, 23, 0.08);
+    border: 1px solid rgba(198, 131, 23, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.mulu-top::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #c68317, #ffd9aa);
+    border-radius: 20px 20px 0 0;
+}
+
+.mulu-top:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(198, 131, 23, 0.15);
 }
 
 .mulu {
     display: flex;
     align-items: flex-start;
+    gap: 16px;
 }
 
 .avatar {
-    width: 50px;
-    height: 50px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    margin-right: 16px;
+    border: 3px solid #f7e7c6;
+    box-shadow: 0 4px 12px rgba(198, 131, 23, 0.2);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.list {
+    flex: 1;
+    min-width: 0;
 }
 
 .list .uname {
-    font-weight: bold;
-    font-size: 16px;
+    font-weight: 600;
+    font-size: 18px;
     color: #c68317;
     text-decoration: none;
+    display: inline-block;
+    margin-bottom: 8px;
+    transition: color 0.3s ease;
+}
+
+.list .uname:hover {
+    color: #a06a12;
 }
 
 .list .sentences {
-    margin-top: 10px;
+    margin: 12px 0;
+    line-height: 1.6;
+    color: #333;
+    font-size: 15px;
+    word-wrap: break-word;
 }
 
 .last {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 12px;
-    color: #999;
-    font-size: 14px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(198, 131, 23, 0.1);
+}
+
+.time {
+    color: #888;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.others {
+    display: flex;
+    gap: 16px;
+    align-items: center;
 }
 
 .others a {
-    margin-left: 12px;
     text-decoration: none;
-    color: #333;
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    background: rgba(198, 131, 23, 0.05);
+    border: 1px solid transparent;
+}
+
+.others a:hover {
+    background: rgba(198, 131, 23, 0.1);
+    color: #c68317;
+    border-color: rgba(198, 131, 23, 0.2);
+    transform: translateY(-1px);
 }
 
 .others .like.active {
-    color: red;
+    color: #ff4757;
+    background: rgba(255, 71, 87, 0.1);
+    border-color: rgba(255, 71, 87, 0.2);
 }
 
 .others .collect.active {
     color: #c68317;
+    background: rgba(198, 131, 23, 0.1);
+    border-color: rgba(198, 131, 23, 0.2);
 }
 
 .follow-btn {
@@ -252,4 +322,162 @@ body {
 
 .information .people p {
     margin: 0;
+}
+
+
+
+/* 图片显示样式 - 和personal页面保持一致 */
+.content .pictures {
+    margin: 16px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.content .post-image {
+    max-width: 180px;
+    max-height: 180px;
+    border-radius: 12px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.content .post-image:hover {
+    transform: scale(1.05);
+    border-color: rgba(198, 131, 23, 0.3);
+    box-shadow: 0 8px 24px rgba(198, 131, 23, 0.2);
+}
+
+/* 评论区样式 */
+.comments {
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 10px;
+    padding: 15px;
+    border-left: 3px solid #007bff;
+}
+
+.comments.hidden {
+    display: none;
+}
+
+.inputComment {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.inputComment textarea {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    resize: vertical;
+    min-height: 40px;
+    font-family: inherit;
+}
+
+.submitComment {
+    padding: 10px 20px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.submitComment:hover {
+    background: #0056b3;
+}
+
+.otherComments {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.xijie {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: white;
+    border-radius: 5px;
+    border: 1px solid #eee;
+}
+
+.avatar1 {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.exceptA {
+    flex: 1;
+}
+
+.author-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.name {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.words {
+    margin: 5px 0;
+    color: #333;
+    line-height: 1.4;
+}
+
+.ctime {
+    font-size: 12px;
+    color: #666;
+    margin: 0;
+}
+
+.empty-comment {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 20px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .pictures {
+        gap: 5px;
+    }
+    
+    .post-image {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .more-images {
+        width: 80px;
+        height: 80px;
+        font-size: 14px;
+    }
+    
+    .comments {
+        padding: 10px;
+    }
+    
+    .inputComment {
+        flex-direction: column;
+    }
+    
+    .submitComment {
+        align-self: flex-end;
+    }
 }

@@ -12,7 +12,7 @@
             /* 帖子详情页专用样式 */
             .post-detail-container {
                 max-width: 800px;
-                margin: 20px auto;
+                margin: 80px auto 20px auto; /* 增加顶部间距，避免被导航栏遮挡 */
                 background: #fff;
                 border-radius: 12px;
                 box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -307,7 +307,7 @@
 
             @media (max-width: 768px) {
                 .post-detail-container {
-                    margin: 10px;
+                    margin: 60px 10px 10px 10px; /* 移动端也增加顶部间距 */
                     border-radius: 8px;
                 }
 
@@ -331,15 +331,17 @@
     <!--header-->
     <div class="father">
         <div class='header'>
-            <div class="header-next" href="/index">
-                <image class="logo" src="../images/logo.png"></image>
-                <image class="title" src="../images/title.png"></image>
+            <div class="header-next">
+                <a href="/index" style="text-decoration: none; color: inherit; display: flex; align-items: center;">
+                    <img class="logo" src="../images/logo.png" alt="logo" style="height:40px; margin-right:10px;">
+                    <img class="title" src="../images/title.png" alt="title" style="height:40px;">
+                </a>
                 <ul class="topics">
                     <li>
                         <a href="/index" class="active" data-id="1">宠物博客</a>
                     </li>
                     <li>
-                        <a data-id="2">宠物问答</a>
+                        <a data-id="2" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;" title="功能开发中">宠物问答</a>
                     </li>
                 </ul>
                 <div class="login-header">
@@ -389,22 +391,20 @@
     </div>
 
     <script>
-        // 检查登录状态，如果未登录则跳转到登录页面
+        // 检查登录状态，但不强制跳转（允许未登录用户访问）
         (function checkLoginStatus() {
             const token = localStorage.getItem('eleToken');
             const userData = localStorage.getItem('user_data');
             
             if (!token || !userData) {
-                console.log('未登录，跳转到登录页面');
-                window.location.href = '/login';
+                console.log('未登录状态，但允许访问帖子详情页');
                 return;
             }
             
             try {
                 JSON.parse(userData);
             } catch (e) {
-                console.log('用户数据格式错误，跳转到登录页面');
-                window.location.href = '/login';
+                console.log('用户数据格式错误，但允许访问帖子详情页');
                 return;
             }
         })();
@@ -546,10 +546,7 @@
                                 <i class="bi bi-star"></i>
                                 <span>收藏</span>
                             </button>
-                            <button class="action-btn share" data-id="${post.id}">
-                                <i class="bi bi-share"></i>
-                                <span>分享</span>
-                            </button>
+
                         </div>
                     </div>
                 `;
@@ -590,6 +587,34 @@
 
                 // 加载评论
                 loadComments(postId);
+                
+                // 设置评论输入框状态
+                const textarea = document.querySelector('.comment-textarea');
+                const submitBtn = document.querySelector('.submit-comment-btn');
+                
+                if (!localStorage.getItem('eleToken')) {
+                    // 未登录状态
+                    if (textarea) {
+                        textarea.placeholder = '请先登录后再评论';
+                        textarea.disabled = true;
+                    }
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.style.cursor = 'not-allowed';
+                        submitBtn.style.opacity = '0.6';
+                    }
+                } else {
+                    // 登录状态
+                    if (textarea) {
+                        textarea.placeholder = '说点什么吧...';
+                        textarea.disabled = false;
+                    }
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.style.cursor = 'pointer';
+                        submitBtn.style.opacity = '1';
+                    }
+                }
 
             } catch (error) {
                 console.error('加载帖子详情失败:', error);
@@ -738,18 +763,18 @@
                     }
 
                     try {
-                        const res = await axios.post('/api/posts/addComment', {
-                            name: userData.name,
+                        const res = await axios.post('/api/posts/comments', {
                             content: content,
-                            avatar: userData.avatar,
                             id_user: userData.id_user,
                             id_from_post: postId
                         });
 
-                        if (res.data) {
+                        if (res.data && res.data.success) {
                             textarea.value = '';
                             loadComments(postId);
                             alert('评论成功');
+                        } else {
+                            alert('评论失败，请重试');
                         }
                     } catch (error) {
                         console.error('评论失败:', error);

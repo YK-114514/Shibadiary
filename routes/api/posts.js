@@ -197,15 +197,18 @@ router.get('/indexLike', (req, res) => {
         
         console.log('点赞排序分页计算结果:', { total, totalPages, currentPage: page });
         
-        // 获取分页帖子（按点赞数排序）
+        // 获取分页帖子（按点赞数排序，点赞数相同时按时间降序）
         const sqlStr = `
             SELECT p.*, u.name, u.avatar,
                    (SELECT COUNT(*) FROM likes WHERE likes.id_from_post = p.id) as likeCount 
             FROM post_infom p
             LEFT JOIN user u ON p.id_user = u.id_user
-            ORDER BY likeCount DESC 
+            ORDER BY likeCount DESC, p.time DESC 
             LIMIT ? OFFSET ?
         `;
+        
+        console.log('执行SQL查询:', sqlStr);
+        console.log('查询参数:', [limit, offset]);
         
         db.query(sqlStr, [limit, offset], (err, results) => {
             if (err) throw err
@@ -270,7 +273,7 @@ router.get('/like/:postId',(req,res)=>{
 router.get('/:postId/comments',(req,res)=>{
     const postId = req.params.postId
 
-    const sqlStr = 'select * from comments where id_from_post=?'
+    const sqlStr = 'SELECT c.*, u.name, u.avatar FROM comments c LEFT JOIN user u ON c.id_user = u.id_user WHERE c.id_from_post=? ORDER BY c.time DESC'
     db.query(sqlStr,[postId],(err,results)=>{
         if(err){
             console.log(err.message)
@@ -362,7 +365,25 @@ router.post(
             return res.status(500).json(err.message)
         }
         if(result.affectedRows === 1){
-            return res.json('添加成功')
+            // 获取新插入的帖子完整信息
+            const getNewPostSql = `
+                SELECT p.*, u.name, u.avatar 
+                FROM post_infom p
+                LEFT JOIN user u ON p.id_user = u.id_user
+                WHERE p.id = ?
+            `;
+            db.query(getNewPostSql, [result.insertId], (err2, postResult) => {
+                if(err2) {
+                    console.log('获取新帖子信息失败:', err2.message)
+                    return res.status(500).json(err2.message)
+                }
+                if(postResult.length > 0) {
+                    console.log('新帖子信息:', postResult[0]);
+                    return res.json(postResult[0]);
+                } else {
+                    return res.status(500).json('获取新帖子信息失败');
+                }
+            });
         }
     })
 })
@@ -379,16 +400,6 @@ router.post('/comments', passport.authenticate('jwt', { session: false }), async
         if (req.body.id_user) addComment.id_user = req.body.id_user;
         addComment.parent_id = req.body.parent_id || null;
         addComment.parent_user_id = req.body.parent_user_id || null;
-        
-        // 从用户表获取用户信息
-        const userResult = await query('SELECT name, avatar FROM user WHERE id_user = ?', [addComment.id_user]);
-        if (userResult.length > 0) {
-            addComment.name = userResult[0].name;
-            addComment.avatar = userResult[0].avatar;
-        } else {
-            addComment.name = '未知用户';
-            addComment.avatar = '/images/default_avatar.jpg';
-        }
 
         // 查询帖子作者 ID
         const postResult = await query('SELECT id_user FROM post_infom WHERE id = ?', [addComment.id_from_post]);
@@ -398,13 +409,34 @@ router.post('/comments', passport.authenticate('jwt', { session: false }), async
             console.error('帖子不存在，ID:', addComment.id_from_post);
             return res.status(404).json({ success: false, message: '帖子不存在' });
         }
-        const targetId = postResult[0].id_user;
-        console.log('帖子作者ID:', targetId);
+        const postAuthorId = postResult[0].id_user;
+        console.log('帖子作者ID:', postAuthorId);
         
-        // 检查是否是自己给自己评论
-        if (parseInt(addComment.id_user) === parseInt(targetId)) {
-            console.log('用户给自己评论，不发送消息通知');
+        // 确定消息的目标用户和类型
+        let targetId, messageKind;
+        
+        if (addComment.parent_id) {
+            // 这是回复，目标是被回复的用户
+            targetId = addComment.parent_user_id;
+            messageKind = 'reply';
+            console.log('回复消息 - 目标用户ID:', targetId);
+            
+            // 检查parent_user_id是否存在
+            if (!targetId) {
+                console.error('回复消息缺少parent_user_id，无法发送消息通知');
+                console.log('跳过消息插入，继续执行评论功能');
+            }
         } else {
+            // 这是评论，目标是帖子作者
+            targetId = postAuthorId;
+            messageKind = 'comment';
+            console.log('评论消息 - 目标用户ID:', targetId);
+        }
+        
+        // 检查是否是自己给自己发消息，以及targetId是否有效
+        if (targetId && parseInt(addComment.id_user) === parseInt(targetId)) {
+            console.log('用户给自己发消息，不发送消息通知');
+        } else if (targetId) {
             // 检查message表是否存在，如果不存在则创建
             try {
                 await query(`
@@ -428,22 +460,24 @@ router.post('/comments', passport.authenticate('jwt', { session: false }), async
             try {
                 await query(
                     'INSERT INTO message (target_id, kind, from_id, from_post_id) VALUES (?, ?, ?, ?)',
-                    [targetId, 'comment', addComment.id_user, addComment.id_from_post]
+                    [targetId, messageKind, addComment.id_user, addComment.id_from_post]
                 );
-                console.log('插入评论消息成功');
+                console.log('插入消息成功，类型:', messageKind);
             } catch (msgError) {
-                console.error('插入评论消息失败:', msgError.message);
+                console.error('插入消息失败:', msgError.message);
                 // 即使消息插入失败，也不影响评论功能
             }
+        } else {
+            console.log('targetId无效，跳过消息插入');
         }
 
-        const sqlInsert = 'insert into comments (name, content, avatar, id_from_post, id_user, parent_id, parent_user_id) values (?, ?, ?, ?, ?, ?, ?)';
-        const result = await query(sqlInsert, [addComment.name, addComment.content, addComment.avatar, addComment.id_from_post, addComment.id_user, addComment.parent_id, addComment.parent_user_id]);
+        const sqlInsert = 'insert into comments (content, id_from_post, id_user, parent_id, parent_user_id) values (?, ?, ?, ?, ?)';
+        const result = await query(sqlInsert, [addComment.content, addComment.id_from_post, addComment.id_user, addComment.parent_id, addComment.parent_user_id]);
         
         if (result.affectedRows === 1) {
-            // 新增：插入成功后查出完整评论对象返回
+            // 新增：插入成功后查出完整评论对象返回（包含用户信息）
             const newId = result.insertId;
-            const rows = await query('select * from comments where idcomments=?', [newId]);
+            const rows = await query('SELECT c.*, u.name, u.avatar FROM comments c LEFT JOIN user u ON c.id_user = u.id_user WHERE c.idcomments=?', [newId]);
             
             if (rows.length > 0) {
                 // 返回新评论对象

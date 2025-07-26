@@ -674,7 +674,7 @@ margin-top:30px;
     left: 50%;
     transform: translate(-50%,-50%);
     width: 520px;
-    min-height: 480px;
+    max-height: 80vh; /* 限制最大高度为视窗高度的80% */
     background: #fffdfa;
     border-radius: 20px;
     box-shadow: 0 8px 32px rgba(198,131,23,0.15);
@@ -683,13 +683,14 @@ margin-top:30px;
     flex-direction: column;
     z-index: 9999;
     border: 1.5px solid #f7e7c6;
+    overflow-y: auto; /* 添加垂直滚动 */
 }
 
 .adding_content .title {
     text-align: center;
     font-size: 24px;
     font-weight: bold;
-    margin: 0 0 24px 0;
+    margin: 0 0 8px 0; /* 进一步减小底部间距，从12px改为8px */
     color: #c68317;
     font-family: '微软雅黑', 'STHeiti', '黑体', 'Arial Rounded MT Bold', 'Arial', sans-serif;
 }
@@ -753,6 +754,25 @@ margin-top:30px;
     background: linear-gradient(to right, #ffaa33, #ffd666) !important;
     box-shadow: 0 6px 20px rgba(255, 180, 70, 0.25);
     transform: translateY(-1px);
+}
+
+/* 自定义滚动条样式 */
+.adding_content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.adding_content::-webkit-scrollbar-track {
+    background: #f7e7c6;
+    border-radius: 4px;
+}
+
+.adding_content::-webkit-scrollbar-thumb {
+    background: #c68317;
+    border-radius: 4px;
+}
+
+.adding_content::-webkit-scrollbar-thumb:hover {
+    background: #e09620;
 }
 
 .image-upload-area {
@@ -1481,6 +1501,24 @@ nav[aria-label="Page navigation"] {
         padding: 8px 12px;
         font-size: 14px;
     }
+    
+    /* 移动端弹窗优化 */
+    .adding_content {
+        width: 90%;
+        max-height: 85vh;
+        padding: 24px 20px 20px 20px;
+    }
+    
+    .adding_content .title {
+        font-size: 20px;
+        margin-bottom: 6px; /* 移动端进一步减小间距，从10px改为6px */
+    }
+    
+    .adding_content .out {
+        right: 15px;
+        top: 15px;
+        font-size: 20px;
+    }
 }
 
 /* 大屏幕优化 */
@@ -1621,4 +1659,103 @@ nav[aria-label="Page navigation"] {
         transform: scale(1.1);
         opacity: 0.8;
     }
+}
+
+/* 空状态样式 */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    margin: 40px auto;
+    max-width: 400px;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    animation: bounce 2s infinite;
+}
+
+.empty-state-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 12px;
+    font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+}
+
+.empty-state-description {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.empty-state-action {
+    display: inline-block;
+    background: linear-gradient(135deg, #e09620, #f0a54a);
+    color: white;
+    text-decoration: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(224, 150, 32, 0.3);
+}
+
+.empty-state-action:hover {
+    background: linear-gradient(135deg, #d08a1a, #e09620);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(224, 150, 32, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .empty-state {
+        padding: 40px 15px;
+        margin: 20px auto;
+    }
+    
+    .empty-state-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+    
+    .empty-state-title {
+        font-size: 20px;
+        margin-bottom: 10px;
+    }
+    
+    .empty-state-description {
+        font-size: 14px;
+        margin-bottom: 12px;
+    }
+    
+    .empty-state-action {
+        padding: 10px 20px;
+        font-size: 13px;
+    }
+    
+
 }

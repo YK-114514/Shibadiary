@@ -22,13 +22,15 @@ body {
 }
 
 .header .logo {
-    width: 60px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
+    margin-left: -60px;
+    margin-right: 0px;
 }
 
 .header .title {
-    height: 36px;
-    margin-left: 16px;
+    height: 130px;
+    margin-left: 20px;
 }
 
 .header .setting {
@@ -189,6 +191,12 @@ body {
 
 .delete-message:hover {
     opacity: 1;
+}
+
+/* 消息页面删除按钮位置调整 */
+.message-actions .delete-post-btn {
+    position: relative;
+    top: -5px; /* 向上移动5px */
 }
 
 .message-content {

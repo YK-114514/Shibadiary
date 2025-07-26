@@ -201,31 +201,22 @@ router.post('/avatar', requireAuth, upload.single('avatar'), (req, res) => {
                         console.log(`成功更新了 ${result2.affectedRows} 个帖子的头像`)
                     }
                     
-                    // 更新用户发布的所有评论的头像
-                    db.query('UPDATE comments SET avatar=? WHERE id_user=?', [avatarUrl, userId], (err3, result3) => {
-                        if (err3) {
-                            console.error('更新评论头像失败:', err3)
-                        } else {
-                            console.log(`成功更新了 ${result3.affectedRows} 个评论的头像`)
-                        }
-                        
-                        // 生成新的JWT token，包含更新后的头像信息
-                        const newRule = {
-                            id_user: userId,
-                            name: userName,
-                            avatar: avatarUrl
-                        }
-                        console.log('新token规则:', newRule)
-                        
-                        jwt.sign(newRule, 'secret', { expiresIn: 3600 }, (err, newToken) => {
-                            if (err) return res.status(500).json({ success: false, msg: '生成新token失败' })
-                            console.log('新token生成成功')
-                            return res.json({ 
-                                success: true, 
-                                msg: '头像修改成功', 
-                                avatar: avatarUrl,
-                                newToken: "Bearer " + newToken
-                            })
+                    // 生成新的JWT token，包含更新后的头像信息
+                    const newRule = {
+                        id_user: userId,
+                        name: userName,
+                        avatar: avatarUrl
+                    }
+                    console.log('新token规则:', newRule)
+                    
+                    jwt.sign(newRule, 'secret', { expiresIn: 3600 }, (err, newToken) => {
+                        if (err) return res.status(500).json({ success: false, msg: '生成新token失败' })
+                        console.log('新token生成成功')
+                        return res.json({ 
+                            success: true, 
+                            msg: '头像修改成功', 
+                            avatar: avatarUrl,
+                            newToken: "Bearer " + newToken
                         })
                     })
                 })

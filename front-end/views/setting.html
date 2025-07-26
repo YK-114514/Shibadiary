@@ -14,19 +14,57 @@
         body { background: #f7f7f7; }
         .setting-container { 
             max-width: 500px; 
-            margin: 40px auto; 
+            margin: 0 auto; 
             background: #fff; 
             border-radius: 10px; 
             box-shadow: 0 2px 8px #eee; 
-            padding: 32px 32px 24px 32px; 
+            padding: 20px 32px 16px 32px; 
             position: relative;
+            margin-top: 100px;
             z-index: 1;
         }
         .setting-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 24px; text-align: center; }
         .avatar-preview { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; margin-bottom: 10px; }
         .form-group { margin-bottom: 22px; }
         .form-label { font-weight: 500; }
-        .btn-setting { width: 100%; }
+        .btn-setting { 
+            width: 100%; 
+            background-color: #e09620 !important;
+            border-color: #e09620 !important;
+            color: white !important;
+        }
+        .btn-setting:hover {
+            background-color: #d68a1a !important;
+            border-color: #d68a1a !important;
+            color: white !important;
+        }
+        .btn-setting:focus {
+            background-color: #e09620 !important;
+            border-color: #e09620 !important;
+            color: white !important;
+            box-shadow: 0 0 0 0.2rem rgba(224, 150, 32, 0.25) !important;
+        }
+        
+        /* 覆盖Bootstrap的btn-primary样式 */
+        .btn-primary.btn-setting {
+            background-color: #e09620 !important;
+            border-color: #e09620 !important;
+            color: white !important;
+        }
+        
+        .btn-primary.btn-setting:hover {
+            background-color: #d68a1a !important;
+            border-color: #d68a1a !important;
+            color: white !important;
+        }
+        
+        .btn-primary.btn-setting:active,
+        .btn-primary.btn-setting:focus {
+            background-color: #e09620 !important;
+            border-color: #e09620 !important;
+            color: white !important;
+            box-shadow: 0 0 0 0.2rem rgba(224, 150, 32, 0.25) !important;
+        }
         .setting-section { border-bottom: 1px solid #f0f0f0; padding-bottom: 18px; margin-bottom: 18px; }
         .setting-section:last-child { border-bottom: none; }
         .error-msg { color: #d9534f; font-size: 0.95em; margin-top: 6px; }
@@ -41,7 +79,8 @@
         .next {
             flex: 1;
             padding: 20px;
-            margin-top: 80px; /* 为header留出空间 */
+            margin-top: 60px; /* 为header留出空间 */
+            position: relative;
         }
         
         /* 确保setting容器在正确位置 */
@@ -154,7 +193,7 @@
                         <a href="/index" data-id="1">宠物博客</a>
                     </li>
                     <li>
-                        <a data-id="2" >宠物问答</a>
+                        <a data-id="2" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;" title="功能开发中">宠物问答</a>
                     </li>
                   
                 </ul>
@@ -175,41 +214,41 @@
         </div>
     
 
-    <!-- 左侧菜单栏-->
-  
-<div class="setting-container">
-    <div class="setting-title">个人设置</div>
+    <div class="next">
+        <div class="setting-container">
+            <div class="setting-title">个人设置</div>
 
-    <!-- 换头像 -->
-    <div class="setting-section">
-        <label class="form-label">头像</label><br>
-        <img id="avatarPreview" class="avatar-preview" src="/images/default_avatar.jpg" alt="头像">
-        <input type="file" id="avatarInput" accept="image/*" class="form-control mt-2">
-        <button class="btn btn-primary btn-setting mt-2" id="saveAvatarBtn">保存头像</button>
-        <div id="avatarMsg"></div>
-    </div>
+            <!-- 换头像 -->
+            <div class="setting-section">
+                <label class="form-label">头像</label><br>
+                <img id="avatarPreview" class="avatar-preview" src="/images/default_avatar.jpg" alt="头像">
+                <input type="file" id="avatarInput" accept="image/*" class="form-control mt-2">
+                <button class="btn btn-primary btn-setting mt-2" id="saveAvatarBtn">保存头像</button>
+                <div id="avatarMsg"></div>
+            </div>
 
-    <!-- 换昵称 -->
-    <div class="setting-section">
-        <label class="form-label">昵称</label>
-        <input type="text" id="nicknameInput" class="form-control" maxlength="16" placeholder="">
-        <button class="btn btn-primary btn-setting mt-2" id="saveNicknameBtn">保存昵称</button>
-        <div id="nicknameMsg"></div>
-    </div>
+            <!-- 换昵称 -->
+            <div class="setting-section">
+                <label class="form-label">昵称</label>
+                <input type="text" id="nicknameInput" class="form-control" maxlength="16" placeholder="">
+                <button class="btn btn-primary btn-setting mt-2" id="saveNicknameBtn">保存昵称</button>
+                <div id="nicknameMsg"></div>
+            </div>
 
-    <!-- 换密码 -->
-    <div class="setting-section" id="passwordSection">
-        <button class="btn btn-primary btn-setting" id="startChangePwdBtn">修改密码</button>
-        <div id="passwordInputs" style="display:none;">
-            <label class="form-label mt-2">新密码</label>
-            <input type="password" id="newPasswordInput" class="form-control">
-            <label class="form-label mt-2">确认新密码</label>
-            <input type="password" id="confirmPasswordInput" class="form-control">
-            <button class="btn btn-primary btn-setting mt-2" id="savePasswordBtn">保存密码</button>
+            <!-- 换密码 -->
+            <div class="setting-section" id="passwordSection">
+                <button class="btn btn-primary btn-setting" id="startChangePwdBtn">修改密码</button>
+                <div id="passwordInputs" style="display:none;">
+                    <label class="form-label mt-2">新密码</label>
+                    <input type="password" id="newPasswordInput" class="form-control">
+                    <label class="form-label mt-2">确认新密码</label>
+                    <input type="password" id="confirmPasswordInput" class="form-control">
+                    <button class="btn btn-primary btn-setting mt-2" id="savePasswordBtn">保存密码</button>
+                </div>
+                <div id="passwordMsg"></div>
+            </div>
         </div>
-        <div id="passwordMsg"></div>
     </div>
-</div>
 
 <script>
 // Header 相关功能

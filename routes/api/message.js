@@ -57,6 +57,10 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     content = `${msg.from_user_name || '用户'}评论了你的帖子`;
                     type = '评论通知';
                     break;
+                case 'reply':
+                    content = `${msg.from_user_name || '用户'}回复了你的评论`;
+                    type = '回复通知';
+                    break;
                 default:
                     content = msg.content || '新消息';
                     type = '系统通知';

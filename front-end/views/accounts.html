@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href="../css/accounts.css">
+    <link rel="stylesheet" href="../css/accounts.css?v=1.0.5">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="../http.js"></script>
     
@@ -36,6 +36,7 @@
         </ul>
         </div>
     
+
     
 </body>
 </html>
@@ -149,8 +150,11 @@ console.log(userId)
     })
 
     async function getAccounts() {
+        console.log('开始获取accounts数据');
         const allData = await getAllData();
         const post_Datas = allData.posts || []; // 只取posts数组
+
+        console.log('获取到的帖子数据:', post_Datas);
 
         if (post_Datas.length === 0) {
             content.innerHTML = '什么也没有哦'
@@ -160,6 +164,7 @@ console.log(userId)
         content.innerHTML = '' // 清空现有内容
 
         post_Datas.forEach(async (post) => {
+            console.log('正在渲染帖子:', post);
             const formatted = new Date(post.time).toLocaleString('zh-CN', {
                 year: 'numeric',
                 month: '2-digit',
@@ -180,14 +185,29 @@ console.log(userId)
                 console.error('获取用户关注数据失败:', error);
             }
 
+            // 处理图片显示 - 和personal页面保持一致
+            let imagesArr = [];
+            try {
+                imagesArr = post.images ? JSON.parse(post.images) : [];
+            } catch(error) {
+                imagesArr = [];
+            }
+            let picturesHtml = '';
+            if (imagesArr.length > 0) {
+                picturesHtml = `<div class="pictures">` +
+                    imagesArr.map(img => `<img src="${img}" class="post-image" loading="lazy">`).join('') +
+                    `</div>`;
+            }
+
+            console.log('渲染帖子HTML:', picturesHtml);
             const li = document.createElement('li')
             li.innerHTML = `
-                <div class="mulu-top">
+                <div class="mulu-top" style="position:relative;">
                     <div class="mulu">
                         <image class="avatar" src=${post.avatar}></image>
                         <div class="list">
                             <div class="divide_row">
-                                <a href="javascript:;" class="uname">${post.name}</a>
+                                <a href="javascript:;" class="uname" data-userid="${post.id_user}">${post.name}</a>
                                 <div class="information">
                                     <div class="divide">
                                         <image class="touxiang" src=${post.avatar}></image>
@@ -200,44 +220,210 @@ console.log(userId)
                                 </div>
                             </div>
                             <p class="sentences">${post.content}</p>
-                            <div class="pictures"></div>
+                            ${picturesHtml}
                             <div class="last">
                                 <p class="time">${formatted}</p>
                                 <div class="others">
-                                    <a href="javascript:;" class="like" data-id="${post.id}">❤0</a>
-                                    <a href="javascript:;" class="collect" data-id="${post.id}">⭐Collects</a>
-                                    <a href='javascript:;' class="say" data-id="${post.id}">🖊Comments</a>
+                                    <a href="javascript:;" class="like" data-id="${post.id}">❤ 0</a>
+                                    <a href="javascript:;" class="collect" data-id="${post.id}">⭐ 收藏</a>
+                                    <a href='javascript:;' class="say" data-id="${post.id}">🖊 评论</a>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    <div class="comments hidden" data-id="${post.id}">
+                        <div class="inputComment">
+                            <textarea id="my" placeholder="说点什么吧..." maxlength="200"></textarea>
+                            <button class="submitComment">发送</button>
+                        </div>
+                        <div class="otherComments"></div>
+                    </div>
                 </div>
             `
+            console.log('添加到DOM:', li);
             content.prepend(li)
         })
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-    getAccounts();
-    
-    // 添加用户名悬停事件处理
-    document.addEventListener('mouseover', function(e) {
-        if (e.target.classList.contains('uname')) {
-            const information = e.target.nextElementSibling;
-            if (information && information.classList.contains('information')) {
-                information.classList.add('active');
+        console.log('DOM加载完成，开始初始化accounts页面');
+        getAccounts();
+        
+        // 添加用户名悬停事件处理
+        document.addEventListener('mouseover', function(e) {
+            if (e.target.classList.contains('uname')) {
+                const information = e.target.nextElementSibling;
+                if (information && information.classList.contains('information')) {
+                    information.classList.add('active');
+                }
             }
-        }
-    });
+        });
 
-    document.addEventListener('mouseout', function(e) {
-        if (e.target.classList.contains('uname')) {
-            const information = e.target.nextElementSibling;
-            if (information && information.classList.contains('information')) {
-                information.classList.remove('active');
+        document.addEventListener('mouseout', function(e) {
+            if (e.target.classList.contains('uname')) {
+                const information = e.target.nextElementSibling;
+                if (information && information.classList.contains('information')) {
+                    information.classList.remove('active');
+                }
             }
-        }
-    });
+        });
+
+
+
+        // 处理点赞、收藏、评论按钮点击事件
+        document.addEventListener('click', async function(e) {
+            const target = e.target;
+            const postId = parseInt(target.dataset.id, 10);
+
+            // 点赞按钮
+            if (target.classList.contains('like') || target.closest('.like')) {
+                e.stopPropagation();
+                if (!localStorage.getItem('eleToken')) {
+                    alert('请先登录');
+                    return;
+                }
+
+                const userData = JSON.parse(localStorage.getItem('user_data'));
+                if (!userData || !userData.id_user) {
+                    console.error('用户数据不完整');
+                    alert('用户数据不完整，请重新登录');
+                    return;
+                }
+
+                try {
+                    const res = await axios.post('/api/posts/addLike', {
+                        userid_like: userData.id_user,
+                        id_from_post: postId
+                    });
+
+                    if (res.data.success) {
+                        const likeBtn = target.classList.contains('like') ? target : target.closest('.like');
+                        const likeCount = likeBtn.querySelector('.like-count');
+                        likeBtn.classList.toggle('active');
+                        const currentCount = parseInt(likeCount.textContent);
+                        likeCount.textContent = likeBtn.classList.contains('active') ? currentCount + 1 : currentCount - 1;
+                    } else {
+                        alert(res.data.message);
+                    }
+                } catch (error) {
+                    console.error('点赞操作失败:', error);
+                    alert('操作失败，请重试');
+                }
+                return;
+            }
+
+            // 收藏按钮
+            if (target.classList.contains('collect') || target.closest('.collect')) {
+                e.stopPropagation();
+                if (!localStorage.getItem('eleToken')) {
+                    alert('请先登录');
+                    return;
+                }
+
+                const userData = JSON.parse(localStorage.getItem('user_data'));
+                if (!userData || !userData.id_user) {
+                    console.error('用户数据不完整');
+                    alert('用户数据不完整，请重新登录');
+                    return;
+                }
+
+                try {
+                    const res = await axios.post('/api/posts/addCollect', {
+                        userid_collect: userData.id_user,
+                        id_from_post: postId
+                    });
+
+                    if (res.data.success) {
+                        const collectBtn = target.classList.contains('collect') ? target : target.closest('.collect');
+                        collectBtn.classList.toggle('active');
+                    } else {
+                        alert(res.data.message);
+                    }
+                } catch (error) {
+                    console.error('收藏操作失败:', error);
+                    alert('操作失败，请重试');
+                }
+                return;
+            }
+
+            // 评论按钮
+            if (target.classList.contains('say') || target.closest('.say')) {
+                e.stopPropagation();
+                const muluTop = target.closest('.mulu-top');
+                if (muluTop) {
+                    const cmt = muluTop.querySelector(`.comments[data-id="${postId}"]`);
+                    if (cmt) {
+                        cmt.classList.toggle('hidden');
+                        
+                        // 如果评论区域显示，则加载评论
+                        if (!cmt.classList.contains('hidden')) {
+                            try {
+                                const res = await axios.get(`/api/posts/${postId}/comments`);
+                                const comments = res.data;
+                                const otherComments = cmt.querySelector('.otherComments');
+                                
+                                if (comments.length === 0) {
+                                    otherComments.innerHTML = '<div class="empty-comment">抢个沙发吧</div>';
+                                } else {
+                                    otherComments.innerHTML = comments.map(comment => `
+                                        <div class="xijie" data-idcomments="${comment.idcomments}" data-userid="${comment.id_user}">
+                                            <image class="avatar1" src=${comment.avatar}></image>
+                                            <div class="exceptA">
+                                                <div class='author-container'>
+                                                    <a href="javascript:;" class="name" data-userid="${comment.id_user}">${comment.name}</a>
+                                                </div>
+                                                <div class="information"></div>
+                                                <p class="words">${comment.content}</p>
+                                                <div class="timesLike">
+                                                    <p class="ctime">${comment.time}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('');
+                                }
+                            } catch (error) {
+                                console.error('加载评论失败:', error);
+                            }
+                        }
+                    }
+                }
+                return;
+            }
+
+            // 用户页面跳转
+            if (target.classList.contains('uname')) {
+                const userId = target.dataset.userid;
+                // 判断是否是当前登录用户
+                if (userData && userId == userData.id_user) {
+                    window.location.href = '/personal';
+                } else {
+                    window.location.href = `/accounts?id=${userId}`;
+                }
+                return;
+            }
+
+            // 如果点击的是帖子容器，跳转到详情页（排除评论区）
+            const muluTop = target.closest('.mulu-top');
+            if (muluTop) {
+                // 检查是否点击的是评论区相关元素
+                const isCommentArea = target.closest('.comments') || 
+                                    target.closest('.inputComment') || 
+                                    target.closest('.otherComments') ||
+                                    target.closest('.xijie') ||
+                                    target.closest('.reply-container') ||
+                                    target.closest('.submitComment') ||
+                                    target.closest('textarea') ||
+                                    target.closest('.delete-comment-btn') ||
+                                    target.closest('.reply-btn') ||
+                                    target.closest('.name') ||
+                                    target.closest('.author-container');
+                
+                if (!isCommentArea) {
+                    const postId = muluTop.querySelector('.like').dataset.id;
+                    window.location.href = `/post-detail/${postId}`;
+                }
+            }
+        });
     });
 
     const followBtn = document.querySelector('.follow-btn');
@@ -299,7 +485,6 @@ console.log(userId)
             }
         }
     });
-
 
 
 
