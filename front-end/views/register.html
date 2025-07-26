@@ -12,16 +12,17 @@
 <body>
     <!--turn to login-->
     <div class="header-container">
-    <div class="login">
-        <text class="first">已有账号？</text>
-        <a href='/login'class="second">登录</a>
-
+        <div class="header-next">
+            <a href="/index" class="header">
+                <img class="logo" src="../images/logo.png">
+                <img class="title" src="../images/title.png">
+            </a>
+        </div>
+        <div class="login">
+            <text class="first">已有账号？</text>
+            <a href='/login' class="second">登录</a>
+        </div>
     </div>
-    <a href="/index" class="header">
-        <img class="logo" src="../images/logo.png"></image>
-        <img class="title" src="../images/title.png"></image>
-    </a>
-</div>
      
     <!--注册部分-->
     <div class="square">
@@ -190,7 +191,39 @@
                         })
                         .catch(err => {
                             console.error('注册失败:', err.response?.data || err.message);
-                            alertDanger.textContent = err.response?.data || '注册失败，请重新注册';
+                            console.log('完整错误对象:', err);
+                            console.log('错误响应:', err.response);
+                            console.log('错误数据:', err.response?.data);
+                            console.log('错误状态:', err.response?.status);
+                            
+                            // 根据后端返回的具体错误信息显示不同的提示
+                            let errorMessage = '注册失败，请重新注册';
+                            
+                            // 检查错误对象本身是否包含错误信息
+                            if (typeof err === 'string') {
+                                errorMessage = err;
+                            } else if (err.response?.data) {
+                                console.log('后端返回的错误信息:', err.response.data);
+                                if (err.response.data === '该昵称已被占用') {
+                                    errorMessage = '该昵称已被占用';
+                                } else if (err.response.data === '该手机号已被占用') {
+                                    errorMessage = '该手机号已被占用';
+                                } else {
+                                    errorMessage = err.response.data;
+                                }
+                            } else if (err.message) {
+                                // 如果错误对象本身包含消息
+                                if (err.message === '该昵称已被占用') {
+                                    errorMessage = '该昵称已被占用';
+                                } else if (err.message === '该手机号已被占用') {
+                                    errorMessage = '该手机号已被占用';
+                                } else {
+                                    errorMessage = err.message;
+                                }
+                            }
+                            
+                            console.log('最终显示的错误信息:', errorMessage);
+                            alertDanger.textContent = errorMessage;
                             alertDanger.style.display = 'block';
                             setTimeout(() => {
                                 alertDanger.style.display = 'none';

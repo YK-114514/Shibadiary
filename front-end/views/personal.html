@@ -465,11 +465,11 @@
             li.innerHTML = `
                 <div class="mulu-top" style="position:relative;">
                     ${deleteBtnHtml}
-                    <div class="mulu">
+                    <div class="mulu" style="cursor: pointer;" onclick="window.location.href='/post-detail/${post.id}'">
                         <image class="avatar" src=${post.avatar}></image>
                         <div class="list">
                             <div class="divide_row">
-                                <a href="javascript:;" class="uname" data-userid="${post.id_user}">${post.name}</a>
+                                <a href="javascript:;" class="uname" data-userid="${post.id_user}" onclick="event.stopPropagation()">${post.name}</a>
                                 <div class="information">
                                     <div class="divide">
                                         <image class="touxiang" src=${post.avatar}></image>
@@ -485,11 +485,6 @@
                             ${picturesHtml}
                             <div class="last">
                                 <p class="time">${formatted}</p>
-                                <div class="others">
-                                    <a href="javascript:;" class="like" data-id="${post.id}">❤ 0</a>
-                                    <a href="javascript:;" class="collect" data-id="${post.id}">⭐ 收藏</a>
-                                    <a href='javascript:;' class="say" data-id="${post.id}">🖊 评论</a>
-                                </div>
                             </div>
                         </div>
                     </div>

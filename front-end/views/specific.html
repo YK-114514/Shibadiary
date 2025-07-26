@@ -45,10 +45,15 @@
             .post-author-name {
                 font-size: 16px;
                 font-weight: 600;
-                color: #333;
+                color: #e09620;
                 text-decoration: none;
                 margin-bottom: 5px;
                 display: block;
+                transition: color 0.2s;
+            }
+
+            .post-author-name:hover {
+                color: #f0a040;
             }
 
             .post-time {
@@ -62,22 +67,25 @@
                 color: #333;
                 margin-bottom: 20px;
                 word-wrap: break-word;
+                margin-left: 65px;
             }
 
             .post-images {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                grid-template-columns: repeat(3, 150px);
                 gap: 10px;
                 margin-bottom: 20px;
+                margin-left: 65px;
             }
 
             .post-image {
-                width: 100%;
-                height: 200px;
+                width: 150px;
+                height: 150px;
                 object-fit: cover;
                 border-radius: 8px;
                 cursor: pointer;
                 transition: transform 0.2s;
+                aspect-ratio: 1 / 1;
             }
 
             .post-image:hover {
@@ -90,6 +98,7 @@
                 gap: 20px;
                 padding-top: 15px;
                 border-top: 1px solid #f0f0f0;
+                margin-left: 65px;
             }
 
             .action-btn {
@@ -125,13 +134,44 @@
             }
 
             .comments-header {
-                font-size: 18px;
-                font-weight: 600;
-                color: #333;
                 margin-bottom: 20px;
                 display: flex;
                 align-items: center;
+                justify-content: space-between;
+            }
+
+            .comments-title {
+                display: flex;
+                align-items: center;
                 gap: 10px;
+                font-size: 18px;
+                font-weight: 600;
+                color: #333;
+            }
+
+            .sort-btn {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                padding: 6px 12px;
+                background: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 6px;
+                font-size: 12px;
+                color: #666;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .sort-btn:hover {
+                background: #e9ecef;
+                color: #333;
+            }
+
+            .sort-btn.active {
+                background: #e09620;
+                color: white;
+                border-color: #e09620;
             }
 
             .comment-count {
@@ -147,17 +187,19 @@
                 border-radius: 12px;
                 padding: 20px;
                 margin-bottom: 30px;
+                display: flex;
+                gap: 10px;
+                align-items: flex-end;
             }
 
             .comment-textarea {
-                width: 100%;
-                min-height: 80px;
+                flex: 1;
+                min-height: 60px;
                 border: 1px solid #e0e0e0;
                 border-radius: 8px;
                 padding: 12px;
                 font-size: 14px;
                 resize: vertical;
-                margin-bottom: 15px;
             }
 
             .comment-textarea:focus {
@@ -166,14 +208,19 @@
             }
 
             .submit-comment-btn {
-                background: #e09620;
+                background: linear-gradient(90deg, #ffa726, #ff9800);
                 color: white;
                 border: none;
                 padding: 10px 20px;
-                border-radius: 6px;
+                border-radius: 25px;
                 font-size: 14px;
                 cursor: pointer;
-                transition: background 0.2s;
+                transition: all 0.3s ease;
+                flex-shrink: 0;
+                height: 60px;
+                box-sizing: border-box;
+                box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+                font-weight: 500;
             }
 
             .submit-comment-btn:hover {
@@ -333,8 +380,8 @@
         <div class='header'>
             <div class="header-next">
                 <a href="/index" style="text-decoration: none; color: inherit; display: flex; align-items: center;">
-                    <img class="logo" src="../images/logo.png" alt="logo" style="height:40px; margin-right:10px;">
-                    <img class="title" src="../images/title.png" alt="title" style="height:40px;">
+                    <img class="logo" src="../images/logo.png" alt="logo">
+                    <img class="title" src="../images/title.png" alt="title">
                 </a>
                 <ul class="topics">
                     <li>
@@ -368,9 +415,15 @@
         
         <div class="comments-section">
             <div class="comments-header">
-                <i class="bi bi-chat-dots"></i>
-                评论区
-                <span class="comment-count">0</span>
+                <div class="comments-title">
+                    <i class="bi bi-chat-dots"></i>
+                    评论区
+                    <span class="comment-count">0</span>
+                </div>
+                <button class="sort-btn" id="sortBtn">
+                    <i class="bi bi-sort-down"></i>
+                    <span>最新在前</span>
+                </button>
             </div>
             
             <div class="comment-input-container">
@@ -461,12 +514,41 @@
             }
         }
 
+        // 友好时间格式化函数
+        function formatFriendlyTime(timeStr) {
+            const now = new Date();
+            const postTime = new Date(timeStr);
+            const diffMs = now - postTime;
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHour = Math.floor(diffMin / 60);
+
+            if (diffMin < 1) {
+                return '刚刚';
+            } else if (diffHour < 1) {
+                return `${diffMin}分钟前`;
+            } else if (diffHour < 24) {
+                return `${diffHour}小时前`;
+            } else {
+                // 格式化为 yyyy-mm-dd hh:mm
+                const y = postTime.getFullYear();
+                const m = String(postTime.getMonth() + 1).padStart(2, '0');
+                const d = String(postTime.getDate()).padStart(2, '0');
+                const h = String(postTime.getHours()).padStart(2, '0');
+                const min = String(postTime.getMinutes()).padStart(2, '0');
+                return `${y}-${m}-${d} ${h}:${min}`;
+            }
+        }
+
         // 获取帖子ID
         const postId = window.location.pathname.split('/').pop();
 
         // 加载帖子详情
         async function loadPostDetail() {
             try {
+                // 设置全局postId
+                window.currentPostId = postId;
+                
                 const res = await axios.get(`/api/posts/${postId}`);
                 const post = res.data;
                 
@@ -622,15 +704,22 @@
             }
         }
 
+        // 全局排序状态
+        let commentSortOrder = 'desc'; // 'desc' 为倒序（最新在前），'asc' 为正序（最旧在前）
+
         // 加载评论
         async function loadComments(postId) {
             try {
-                const res = await axios.get(`/api/posts/${postId}/comments`);
-                const comments = res.data;
+                // 获取所有评论（不分页）
+                const res = await axios.get(`/api/posts/${postId}/comments?limit=1000`);
+                const data = res.data;
+                let comments = data.comments || data; // 兼容旧格式
                 const commentsList = document.querySelector('.comments-list');
                 const commentCount = document.querySelector('.comment-count');
                 
-                commentCount.textContent = comments.length;
+                // 计算总评论数量（包括回复）
+                const totalCommentsCount = comments.length;
+                commentCount.textContent = totalCommentsCount;
 
                 if (comments.length === 0) {
                     commentsList.innerHTML = '<div class="empty-comments">还没有评论，快来抢沙发吧！</div>';
@@ -648,6 +737,20 @@
                     } else {
                         flatReplies.push(comment);
                     }
+                });
+
+                // 根评论排序（受按钮影响）
+                rootComments.sort((a, b) => {
+                    const timeA = new Date(a.time).getTime();
+                    const timeB = new Date(b.time).getTime();
+                    return commentSortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+                });
+
+                // 回复始终正序
+                flatReplies.sort((a, b) => {
+                    const timeA = new Date(a.time).getTime();
+                    const timeB = new Date(b.time).getTime();
+                    return timeA - timeB;
                 });
 
                 // 渲染回复
@@ -669,12 +772,12 @@
                                     <img class="comment-avatar" src="${reply.avatar}" alt="头像">
                                     <div class="comment-content">
                                         <div class="comment-author">
-                                            ${showName}
+                                            <a href="javascript:;" class="name" data-userid="${reply.id_user}">${showName}</a>
                                             ${deleteBtn}
                                         </div>
                                         <div class="comment-text">${reply.content}</div>
                                         <div class="comment-meta">
-                                            <span class="comment-time">${reply.time}</span>
+                                            <span class="comment-time">${formatFriendlyTime(reply.time)}</span>
                                             <span class="reply-btn" data-user="${reply.name}" data-id="${reply.idcomments}">回复</span>
                                         </div>
                                     </div>
@@ -694,12 +797,12 @@
                             <img class="comment-avatar" src="${comment.avatar}" alt="头像">
                             <div class="comment-content">
                                 <div class="comment-author">
-                                    ${comment.name}
+                                    <a href="javascript:;" class="name" data-userid="${comment.id_user}">${comment.name}</a>
                                     ${deleteBtn}
                                 </div>
                                 <div class="comment-text">${comment.content}</div>
                                 <div class="comment-meta">
-                                    <span class="comment-time">${comment.time}</span>
+                                    <span class="comment-time">${formatFriendlyTime(comment.time)}</span>
                                     <span class="reply-btn" data-user="${comment.name}" data-id="${comment.idcomments}">回复</span>
                                 </div>
                             </div>
@@ -762,17 +865,34 @@
                         return;
                     }
 
+                    // 检查是否为回复
+                    const parentId = textarea.dataset.parentId;
+                    const parentUser = textarea.dataset.parentUser;
+                    const parentUserId = textarea.dataset.parentUserId;
+                    
+                    const commentData = {
+                        content: content,
+                        id_user: userData.id_user,
+                        id_from_post: postId
+                    };
+
+                    // 如果是回复，添加父评论信息
+                    if (parentId) {
+                        commentData.parent_id = parentId;
+                        commentData.parent_user_id = parentUserId; // 使用被回复用户的ID
+                    }
+
                     try {
-                        const res = await axios.post('/api/posts/comments', {
-                            content: content,
-                            id_user: userData.id_user,
-                            id_from_post: postId
-                        });
+                        const res = await axios.post('/api/posts/comments', commentData);
 
                         if (res.data && res.data.success) {
                             textarea.value = '';
+                            // 清除回复状态
+                            textarea.placeholder = '说点什么吧...';
+                            delete textarea.dataset.parentId;
+                            delete textarea.dataset.parentUser;
+                            delete textarea.dataset.parentUserId;
                             loadComments(postId);
-                            alert('评论成功');
                         } else {
                             alert('评论失败，请重试');
                         }
@@ -845,17 +965,21 @@
                     return;
                 }
 
+                const collectBtn = target.classList.contains('collect') ? target : target.closest('.collect');
+                const currentPostId = collectBtn.dataset.id;
+
                 try {
                     const res = await axios.post('/api/posts/addCollect', {
                         userid_collect: userData.id_user,
-                        id_from_post: postId
+                        id_from_post: currentPostId
                     });
 
-                    if (res.data) {
-                        const collectBtn = target.classList.contains('collect') ? target : target.closest('.collect');
+                    if (res.data && res.data.success) {
                         collectBtn.classList.toggle('active');
                         const collectText = collectBtn.querySelector('span');
                         collectText.textContent = collectBtn.classList.contains('active') ? '已收藏' : '收藏';
+                    } else {
+                        alert(res.data.message || '操作失败');
                     }
                 } catch (error) {
                     console.error('收藏操作失败:', error);
@@ -879,6 +1003,79 @@
                         console.error('删除失败:', error);
                         alert('删除失败，请重试');
                     }
+                }
+                return;
+            }
+
+            // 排序按钮
+            if (target.classList.contains('sort-btn') || target.closest('.sort-btn')) {
+                e.stopPropagation();
+                const sortBtn = target.classList.contains('sort-btn') ? target : target.closest('.sort-btn');
+                
+                // 获取当前帖子ID
+                const currentPostId = window.currentPostId;
+                
+                // 切换排序状态
+                commentSortOrder = commentSortOrder === 'desc' ? 'asc' : 'desc';
+                
+                // 更新按钮文本和图标
+                const icon = sortBtn.querySelector('i');
+                const text = sortBtn.querySelector('span');
+                
+                if (commentSortOrder === 'desc') {
+                    icon.className = 'bi bi-sort-down';
+                    text.textContent = '最新在前';
+                    sortBtn.classList.add('active');
+                } else {
+                    icon.className = 'bi bi-sort-up';
+                    text.textContent = '最早在前';
+                    sortBtn.classList.remove('active');
+                }
+                
+                // 重新加载评论
+                loadComments(currentPostId);
+                return;
+            }
+
+            // 回复按钮
+            if (target.classList.contains('reply-btn')) {
+                e.stopPropagation();
+                if (!localStorage.getItem('eleToken')) {
+                    alert('请先登录');
+                    return;
+                }
+
+                const replyUser = target.dataset.user;
+                const replyId = target.dataset.id;
+                const textarea = document.querySelector('.comment-textarea');
+                
+                // 获取被回复用户的ID
+                const commentItem = target.closest('.comment-item');
+                const parentUserId = commentItem ? commentItem.dataset.userid : null;
+                
+                // 设置placeholder
+                textarea.placeholder = `回复 ${replyUser}：`;
+                
+                // 存储回复信息
+                textarea.dataset.parentId = replyId;
+                textarea.dataset.parentUser = replyUser;
+                textarea.dataset.parentUserId = parentUserId;
+                
+                // 滚动到输入框
+                textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                textarea.focus();
+                return;
+            }
+
+            // 用户名点击跳转
+            if (target.classList.contains('post-author-name') || target.classList.contains('name')) {
+                e.stopPropagation();
+                const userId = target.dataset.userid;
+                // 判断是否是当前登录用户
+                if (userData && userId == userData.id_user) {
+                    window.location.href = '/personal';
+                } else {
+                    window.location.href = `/accounts?id=${userId}`;
                 }
                 return;
             }

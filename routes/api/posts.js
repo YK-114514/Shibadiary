@@ -269,21 +269,7 @@ router.get('/like/:postId',(req,res)=>{
     })
 })
 
-//获取评论区的信息 - 移到具体路由之后
-router.get('/:postId/comments',(req,res)=>{
-    const postId = req.params.postId
-
-    const sqlStr = 'SELECT c.*, u.name, u.avatar FROM comments c LEFT JOIN user u ON c.id_user = u.id_user WHERE c.id_from_post=? ORDER BY c.time DESC'
-    db.query(sqlStr,[postId],(err,results)=>{
-        if(err){
-            console.log(err.message)
-            return res.status(500).json(err.message)
-        }
-        return res.json(results)
-    })
-})
-
-//获取单个帖子详情 - 移到所有具体路由之后
+//获取单个帖子详情
 router.get('/:postId',(req,res)=>{
     const postId = req.params.postId
     
@@ -298,6 +284,127 @@ router.get('/:postId',(req,res)=>{
         }else{
             return res.json(results[0])
         }
+    })
+})
+
+//获取评论区的信息
+router.get('/:postId/comments',(req,res)=>{
+    const postId = req.params.postId
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 5
+    const offset = (page - 1) * limit
+
+    // 首先获取总评论数（只计算根评论，不包括回复）
+    const countSql = 'SELECT COUNT(*) as total FROM comments WHERE id_from_post=? AND parent_id IS NULL'
+    db.query(countSql,[postId],(err,countResult)=>{
+        if(err){
+            console.log('获取评论总数失败:', err.message)
+            return res.status(500).json(err.message)
+        }
+        
+        const total = countResult[0].total
+        const totalPages = Math.ceil(total / limit)
+        
+        // 获取分页的根评论
+        const sqlStr = `
+            SELECT c.*, u.name, u.avatar 
+            FROM comments c 
+            LEFT JOIN user u ON c.id_user = u.id_user 
+            WHERE c.id_from_post=? AND c.parent_id IS NULL
+            ORDER BY c.time DESC 
+            LIMIT ? OFFSET ?
+        `
+        db.query(sqlStr,[postId, limit, offset],(err,results)=>{
+            if(err){
+                console.log('获取评论失败:', err.message)
+                return res.status(500).json(err.message)
+            }
+            
+            // 获取这些根评论的所有回复
+            if(results.length > 0) {
+                const commentIds = results.map(comment => comment.idcomments)
+                console.log('当前页面的根评论ID:', commentIds);
+                
+                // 递归获取这些根评论及其所有子回复的回复
+                const getAllReplies = (parentIds) => {
+                    if (parentIds.length === 0) return Promise.resolve([]);
+                    
+                    const placeholders = parentIds.map(() => '?').join(',');
+                    const replySql = `
+                        SELECT c.*, u.name, u.avatar, 
+                               parent_user.name as parent_user_name
+                        FROM comments c 
+                        LEFT JOIN user u ON c.id_user = u.id_user 
+                        LEFT JOIN comments parent ON c.parent_id = parent.idcomments
+                        LEFT JOIN user parent_user ON parent.id_user = parent_user.id_user
+                        WHERE c.id_from_post=? AND c.parent_id IN (${placeholders})
+                        ORDER BY c.time ASC
+                    `;
+                    
+                    return new Promise((resolve, reject) => {
+                        db.query(replySql, [postId, ...parentIds], (err, replies) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                resolve(replies);
+                            }
+                        });
+                    });
+                };
+                
+                // 递归获取所有回复
+                const getAllNestedReplies = (parentIds) => {
+                    return new Promise((resolve, reject) => {
+                        let allReplies = [];
+                        let currentParentIds = parentIds;
+                        
+                        const fetchNextLevel = () => {
+                            if (currentParentIds.length === 0) {
+                                resolve(allReplies);
+                                return;
+                            }
+                            
+                            getAllReplies(currentParentIds)
+                                .then(replies => {
+                                    allReplies = allReplies.concat(replies);
+                                    currentParentIds = replies.map(reply => reply.idcomments);
+                                    fetchNextLevel();
+                                })
+                                .catch(reject);
+                        };
+                        
+                        fetchNextLevel();
+                    });
+                };
+                
+                getAllNestedReplies(commentIds)
+                    .then(replies => {
+                        console.log('获取到的回复:', replies);
+                        
+                        // 将回复添加到对应的根评论中
+                        const allComments = [...results, ...replies]
+                        return res.json({
+                            comments: allComments,
+                            total: total,
+                            totalPages: totalPages,
+                            currentPage: page,
+                            pageSize: limit
+                        })
+                    })
+                    .catch(err => {
+                        console.log('获取回复失败:', err.message)
+                        return res.status(500).json(err.message)
+                    })
+            } else {
+                return res.json({
+                    comments: [],
+                    total: total,
+                    totalPages: totalPages,
+                    currentPage: page,
+                    pageSize: limit
+                })
+            }
+        })
     })
 })
 

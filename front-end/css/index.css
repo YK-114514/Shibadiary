@@ -1756,6 +1756,41 @@ nav[aria-label="Page navigation"] {
         padding: 10px 20px;
         font-size: 13px;
     }
-    
+}
 
+/* 评论分页样式 */
+.comment-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding: 15px 0;
+    border-top: 1px solid #f0f0f0;
+}
+
+.pagination-info {
+    color: #666;
+    font-size: 14px;
+}
+
+.pagination-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.prev-page-btn,
+.next-page-btn {
+    background: #e09620;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.prev-page-btn:hover,
+.next-page-btn:hover {
+    background: #c68317;
 }

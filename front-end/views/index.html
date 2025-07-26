@@ -212,6 +212,285 @@
     </div>
 
     <script>
+        // 绑定评论事件的通用函数
+        function bindCommentEvents(otherComments, cmt) {
+            // 绑定评论点击事件
+            const commentItems = otherComments.querySelectorAll('.xijie');
+            commentItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const commentId = this.dataset.idcomments;
+                    const commentName = this.querySelector('.name').textContent;
+                    const commentUserId = this.dataset.userid;
+                    const parentId = this.dataset.parentId;
+
+                    const textarea = cmt.querySelector('textarea');
+                    
+                    // 检查是否是回复的回复
+                    if (parentId) {
+                        // 这是回复，显示"回复 xxx："
+                        textarea.placeholder = `回复 ${commentName}：`;
+                        textarea.dataset.parentId = commentId;
+                        textarea.dataset.parentUserId = commentUserId;
+                        textarea.dataset.isReplyToReply = 'true';
+                    } else {
+                        // 这是评论，显示"回复 xxx："
+                        textarea.placeholder = `回复 ${commentName}：`;
+                        textarea.dataset.parentId = commentId;
+                        textarea.dataset.parentUserId = commentUserId;
+                        textarea.dataset.isReplyToReply = 'false';
+                    }
+                    textarea.focus();
+                });
+            });
+
+            // 绑定删除评论按钮事件
+            const deleteCommentBtns = otherComments.querySelectorAll('.delete-comment-btn');
+            deleteCommentBtns.forEach(btn => {
+                btn.addEventListener('click', async function(e) {
+                    e.stopPropagation();
+                    const commentId = this.dataset.commentId;
+                    
+                    if (confirm('确定要删除这条评论吗？')) {
+                        try {
+                            const res = await axios.delete(`/api/posts/comments/${commentId}`);
+                            
+                            if (res.data.success) {
+                                // 删除成功，重新加载评论
+                                const postId = cmt.closest('.mulu').dataset.postId;
+                                const pageInfo = window.commentPages[postId];
+                                const res = await axios.get(`/api/posts/${postId}/comments?page=${pageInfo.currentPage}&limit=${pageInfo.pageSize}`);
+                                const data = res.data;
+                                const comments = data.comments || data;
+                                
+                                // 重新分组
+                                const commentMap = {};
+                                const rootComments = [];
+                                const flatReplies = [];
+                                comments.forEach(comment => {
+                                    commentMap[comment.idcomments] = comment;
+                                    if (!comment.parent_id) {
+                                        rootComments.push(comment);
+                                    } else {
+                                        flatReplies.push(comment);
+                                    }
+                                });
+                                
+                                // 重新渲染评论
+                                if (comments.length === 0) {
+                                    otherComments.innerHTML = '<div class="empty-comment">抢个沙发吧</div>';
+                                } else {
+                                    const commentsHtml = rootComments.map(renderComment).join('');
+                                    let paginationHtml = '';
+                                    if (pageInfo.totalPages > 1) {
+                                        paginationHtml = `
+                                            <div class="comment-pagination">
+                                                <div class="pagination-info">
+                                                    第 ${pageInfo.currentPage} 页，共 ${pageInfo.totalPages} 页
+                                                </div>
+                                                <div class="pagination-controls">
+                                                    ${pageInfo.currentPage > 1 ? `<button class="prev-page-btn" data-post-id="${postId}">上一页</button>` : ''}
+                                                    ${pageInfo.currentPage < pageInfo.totalPages ? `<button class="next-page-btn" data-post-id="${postId}">下一页</button>` : ''}
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
+                                    otherComments.innerHTML = commentsHtml + paginationHtml;
+                                }
+                                
+                                // 重新绑定事件
+                                bindCommentEvents(otherComments, cmt);
+                                
+                                const successAlert = document.querySelector('.alert-success');
+                                if (successAlert) {
+                                    successAlert.style.display = 'block';
+                                    successAlert.textContent = '删除成功';
+                                    setTimeout(() => {
+                                        successAlert.style.display = 'none';
+                                    }, 2000);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('删除评论失败:', error);
+                            const errorAlert = document.querySelector('.alert-danger');
+                            if (errorAlert) {
+                                errorAlert.style.display = 'block';
+                                errorAlert.textContent = '删除失败';
+                                setTimeout(() => {
+                                    errorAlert.style.display = 'none';
+                                }, 2000);
+                            }
+                        }
+                    }
+                });
+            });
+
+            // 绑定分页按钮事件
+            const prevPageBtn = otherComments.querySelector('.prev-page-btn');
+            const nextPageBtn = otherComments.querySelector('.next-page-btn');
+            
+            if (prevPageBtn) {
+                prevPageBtn.addEventListener('click', async function(e) {
+                    e.stopPropagation();
+                    const postId = this.dataset.postId;
+                    const pageInfo = window.commentPages[postId];
+                    if (pageInfo.currentPage > 1) {
+                        pageInfo.currentPage--;
+                        await loadCommentsForPost(postId, pageInfo, otherComments, cmt);
+                    }
+                });
+            }
+            
+            if (nextPageBtn) {
+                nextPageBtn.addEventListener('click', async function(e) {
+                    e.stopPropagation();
+                    const postId = this.dataset.postId;
+                    const pageInfo = window.commentPages[postId];
+                    if (pageInfo.currentPage < pageInfo.totalPages) {
+                        pageInfo.currentPage++;
+                        await loadCommentsForPost(postId, pageInfo, otherComments, cmt);
+                    }
+                });
+            }
+        }
+
+
+
+        // 加载评论的通用函数
+        async function loadCommentsForPost(postId, pageInfo, otherComments, cmt) {
+            const res = await axios.get(`/api/posts/${postId}/comments?page=${pageInfo.currentPage}&limit=${pageInfo.pageSize}`);
+            const data = res.data;
+            const comments = data.comments || data;
+            
+            // 重新分组
+            const commentMap = {};
+            const rootComments = [];
+            const flatReplies = [];
+            comments.forEach(comment => {
+                commentMap[comment.idcomments] = comment;
+                if (!comment.parent_id) {
+                    rootComments.push(comment);
+                } else {
+                    flatReplies.push(comment);
+                }
+            });
+            
+            console.log('评论分组结果:', {
+                totalComments: comments.length,
+                rootComments: rootComments.length,
+                flatReplies: flatReplies.length,
+                commentMapKeys: Object.keys(commentMap)
+            });
+            
+            // 重新渲染评论
+            if (comments.length === 0) {
+                otherComments.innerHTML = '<div class="empty-comment">抢个沙发吧</div>';
+            } else {
+                // 定义局部渲染函数
+                function renderReplies(parentId) {
+                    // 获取该评论的所有回复，按时间正序排列
+                    const replies = flatReplies
+                        .filter(reply => reply.parent_id == parentId)
+                        .sort((a, b) => new Date(a.time) - new Date(b.time));
+                    
+                    console.log(`渲染评论 ${parentId} 的回复:`, replies.map(r => r.idcomments));
+                    
+                    return replies.map(reply => {
+                        let showName = reply.name;
+                        let content = reply.content;
+                        let marginLeft = '32px'; // 默认缩进
+                        
+                        // 判断是否是"回复的回复"
+                        if (reply.parent_id && reply.parent_user_name && commentMap[reply.parent_id] && commentMap[reply.parent_id].parent_id) {
+                            // 这是回复的回复，显示为"回复xxxx：（内容）"
+                            showName = reply.name;
+                            content = `回复${reply.parent_user_name}：${reply.content}`;
+                            console.log(`回复的回复 ${reply.idcomments}: ${content}`);
+                            // 与目标回复左对齐，不额外缩进
+                            marginLeft = '32px';
+                        } else if (reply.parent_id && reply.parent_user_name) {
+                            // 这是回复评论，显示为"xxx 回复 xxx"
+                            showName = `${reply.name} 回复 ${reply.parent_user_name}`;
+                            console.log(`回复评论 ${reply.idcomments}: ${showName}`);
+                            marginLeft = '32px';
+                        }
+                        
+                        // 检查是否为当前用户的评论
+                        const isCurrentUser = userData && reply.id_user == userData.id_user;
+                        const deleteBtn = isCurrentUser ? `<button class="delete-comment-btn" data-comment-id="${reply.idcomments}"><i class="bi bi-trash"></i></button>` : '';
+                        
+                        // 递归渲染这个回复的回复
+                        const nestedReplies = renderReplies(reply.idcomments);
+                        
+                        return `
+                            <div class="xijie" data-idcomments="${reply.idcomments}" data-userid="${reply.id_user}" data-parent-id="${reply.parent_id}" style="margin-left: ${marginLeft};">
+                                <image class="avatar1" src=${reply.avatar}></image>
+                                <div class="exceptA">
+                                    <div class='author-container'>
+                                        <a href="javascript:;" class="name" data-userid="${reply.id_user}">${showName}</a>
+                                        ${deleteBtn}
+                                    </div>
+                                    <div class="information"></div>
+                                    <p class="words">${content}</p>
+                                    <div class="timesLike">
+                                        <p class="ctime">${formatFriendlyTime(reply.time)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            ${nestedReplies}
+                        `;
+                    }).join('');
+                }
+
+                function renderComment(comment) {
+                    // 检查是否为当前用户的评论
+                    const isCurrentUser = userData && comment.id_user == userData.id_user;
+                    const deleteBtn = isCurrentUser ? `<button class="delete-comment-btn" data-comment-id="${comment.idcomments}"><i class="bi bi-trash"></i></button>` : '';
+                    
+                    let html = `
+                        <div class="xijie" data-idcomments="${comment.idcomments}" data-userid="${comment.id_user}" data-parent-id="">
+                            <image class="avatar1" src=${comment.avatar}></image>
+                            <div class="exceptA">
+                                <div class='author-container'>
+                                    <a href="javascript:;" class="name" data-userid="${comment.id_user}">${comment.name}</a>
+                                    ${deleteBtn}
+                                </div>
+                                <div class="information"></div>
+                                <p class="words">${comment.content}</p>
+                                <div class="timesLike">
+                                    <p class="ctime">${formatFriendlyTime(comment.time)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="reply-container">
+                            ${renderReplies(comment.idcomments)}
+                        </div>
+                    `;
+                    return html;
+                }
+                
+                const commentsHtml = rootComments.map(renderComment).join('');
+                let paginationHtml = '';
+                if (pageInfo.totalPages > 1) {
+                    paginationHtml = `
+                        <div class="comment-pagination">
+                            <div class="pagination-info">
+                                第 ${pageInfo.currentPage} 页，共 ${pageInfo.totalPages} 页
+                            </div>
+                            <div class="pagination-controls">
+                                ${pageInfo.currentPage > 1 ? `<button class="prev-page-btn" data-post-id="${postId}">上一页</button>` : ''}
+                                ${pageInfo.currentPage < pageInfo.totalPages ? `<button class="next-page-btn" data-post-id="${postId}">下一页</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                otherComments.innerHTML = commentsHtml + paginationHtml;
+            }
+            
+            // 重新绑定事件
+            bindCommentEvents(otherComments, cmt);
+        }
+
         // 加载header组件
         const userD = localStorage.getItem('user_data');
         let userData = null;
@@ -1571,7 +1850,7 @@
         content.innerHTML = "";
         
         for (let i in post_Datas) {
-            if (post_Datas[i].type == '帖子') {
+            if (post_Datas[i].type == '帖子' || post_Datas[i].type == 'post') {
                 const formatted = formatFriendlyTime(post_Datas[i].time);
 
                 // 获取用户的关注数和粉丝数
@@ -2190,6 +2469,32 @@ async function checkUnreadMessages() {
                 return;
             }
 
+            // 评论分页按钮点击事件
+            if (target.classList.contains('prev-page-btn') || target.classList.contains('next-page-btn')) {
+                e.stopPropagation(); // 阻止事件冒泡
+                const postId = target.dataset.postId;
+                const pageInfo = window.commentPages[postId];
+                
+                if (pageInfo) {
+                    if (target.classList.contains('prev-page-btn') && pageInfo.currentPage > 1) {
+                        pageInfo.currentPage--;
+                    } else if (target.classList.contains('next-page-btn') && pageInfo.currentPage < pageInfo.totalPages) {
+                        pageInfo.currentPage++;
+                    }
+                    
+                    // 重新加载评论
+                    const muluTop = target.closest('.mulu-top');
+                    if (muluTop) {
+                        const cmt = muluTop.querySelector(`.comments[data-id="${postId}"]`);
+                        if (cmt && !cmt.classList.contains('hidden')) {
+                            const otherComments = cmt.querySelector('.otherComments');
+                            loadCommentsForPost(postId, pageInfo, otherComments, cmt);
+                        }
+                    }
+                }
+                return;
+            }
+
             // 评论按钮
             if (target.classList.contains('say')) {
                 e.stopPropagation(); // 阻止事件冒泡，防止跳转到帖子详情页
@@ -2213,221 +2518,33 @@ async function checkUnreadMessages() {
                         // 如果评论区域显示，则加载评论
                         if (!cmt.classList.contains('hidden')) {
                             try {
-                                const res = await axios.get(`/api/posts/${postId}/comments`);
-                                const comments = res.data;
+                                // 初始化分页变量
+                                if (!window.commentPages) {
+                                    window.commentPages = {};
+                                }
+                                if (!window.commentPages[postId]) {
+                                    window.commentPages[postId] = {
+                                        currentPage: 1,
+                                        pageSize: 5,
+                                        total: 0,
+                                        totalPages: 0
+                                    };
+                                }
+                                
+                                const pageInfo = window.commentPages[postId];
+                                const res = await axios.get(`/api/posts/${postId}/comments?page=${pageInfo.currentPage}&limit=${pageInfo.pageSize}`);
+                                const data = res.data;
+                                const comments = data.comments || data; // 兼容旧格式
                                 const otherComments = cmt.querySelector('.otherComments');
                                 
-                                // 1. 分组
-                                const commentMap = {};
-                                const rootComments = [];
-                                const flatReplies = [];
-                                comments.forEach(comment => {
-                                    commentMap[comment.idcomments] = comment;
-                                    if (!comment.parent_id) {
-                                        rootComments.push(comment);
-                                    } else {
-                                        flatReplies.push(comment);
-                                    }
-                                });
-
-                                // 2. 渲染
-                                function renderReplies(parentId) {
-                                    return flatReplies
-                                        .filter(reply => reply.parent_id == parentId)
-                                        .map(reply => {
-                                            let showName = reply.name;
-                                            // 判断是否是"回复的回复"
-                                            if (reply.parent_id && reply.parent_user_name && commentMap[reply.parent_id] && commentMap[reply.parent_id].parent_id) {
-                                                showName = `${reply.name} 回复 ${reply.parent_user_name}`;
-                                            }
-                                            
-                                            // 检查是否为当前用户的评论
-                                            const isCurrentUser = userData && reply.id_user == userData.id_user;
-                                            const deleteBtn = isCurrentUser ? `<button class="delete-comment-btn" data-comment-id="${reply.idcomments}"><i class="bi bi-trash"></i></button>` : '';
-                                            
-                                            return `
-                                                <div class="xijie" data-idcomments="${reply.idcomments}" data-userid="${reply.id_user}" data-parent-id="${reply.parent_id}">
-                                                    <image class="avatar1" src=${reply.avatar}></image>
-                                                    <div class="exceptA">
-                                                        <div class='author-container'>
-                                                            <a href="javascript:;" class="name" data-userid="${reply.id_user}">${showName}</a>
-                                                            ${deleteBtn}
-                                                        </div>
-                                                        <div class="information"></div>
-                                                        <p class="words">${reply.content}</p>
-                                                        <div class="timesLike">
-                                                            <p class="ctime">${formatFriendlyTime(reply.time)}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            `;
-                                        }).join('');
+                                // 更新分页信息
+                                if (data.total !== undefined) {
+                                    pageInfo.total = data.total;
+                                    pageInfo.totalPages = data.totalPages;
                                 }
-
-                                function renderComment(comment) {
-                                    // 检查是否为当前用户的评论
-                                    const isCurrentUser = userData && comment.id_user == userData.id_user;
-                                    const deleteBtn = isCurrentUser ? `<button class="delete-comment-btn" data-comment-id="${comment.idcomments}"><i class="bi bi-trash"></i></button>` : '';
-                                    
-                                    let html = `
-                                        <div class="xijie" data-idcomments="${comment.idcomments}" data-userid="${comment.id_user}" data-parent-id="">
-                                            <image class="avatar1" src=${comment.avatar}></image>
-                                            <div class="exceptA">
-                                                <div class='author-container'>
-                                                    <a href="javascript:;" class="name" data-userid="${comment.id_user}">${comment.name}</a>
-                                                    ${deleteBtn}
-                                                </div>
-                                                <div class="information"></div>
-                                                <p class="words">${comment.content}</p>
-                                                <div class="timesLike">
-                                                    <p class="ctime">${formatFriendlyTime(comment.time)}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="reply-container" style="margin-left:32px;">
-                                            ${renderReplies(comment.idcomments)}
-                                        </div>
-                                    `;
-                                    return html;
-                                }
-
-                                if (comments.length === 0) {
-                                    otherComments.innerHTML = '<div class="empty-comment">抢个沙发吧</div>';
-                                } else {
-                                    otherComments.innerHTML = rootComments.map(renderComment).join('');
-                                }
-
-                                // 3. 绑定点击事件
-                                const commentItems = otherComments.querySelectorAll('.xijie');
-                                commentItems.forEach(item => {
-                                    item.addEventListener('click', function(e) {
-                                        e.stopPropagation();
-                                        const commentId = this.dataset.idcomments;
-                                        const commentName = this.querySelector('.name').textContent;
-                                        const commentUserId = this.dataset.userid;
-                                        const parentId = this.dataset.parentId;
-
-                                        const textarea = cmt.querySelector('textarea');
-                                        // 判断是回复评论还是回复回复
-                                        if (parentId) {
-                                            // 回复的是回复，parentId是被回复评论的parent_id，我们需要的是被回复评论的ID
-                                            textarea.placeholder = `回复 ${commentName}：`;
-                                            textarea.dataset.parentId = commentId; // 使用当前评论的ID作为parent_id
-                                            textarea.dataset.parentUserId = commentUserId;
-                                        } else {
-                                            // 回复的是评论
-                                            textarea.placeholder = `回复 ${commentName}：`;
-                                            textarea.dataset.parentId = commentId;
-                                            textarea.dataset.parentUserId = commentUserId;
-                                        }
-                                        textarea.focus();
-                                    });
-                                });
-
-                                // 绑定删除评论按钮事件
-                                const deleteCommentBtns = otherComments.querySelectorAll('.delete-comment-btn');
-                                deleteCommentBtns.forEach(btn => {
-                                    btn.addEventListener('click', async function(e) {
-                                        e.stopPropagation();
-                                        const commentId = this.dataset.commentId;
-                                        
-                                        console.log('点击删除按钮，评论ID:', commentId);
-                                        console.log('当前用户数据:', userData);
-                                        
-                                        if (confirm('确定要删除这条评论吗？')) {
-                                            try {
-                                                console.log('发送删除请求到:', `/api/posts/comments/${commentId}`);
-                                                const res = await axios.delete(`/api/posts/comments/${commentId}`);
-                                                console.log('删除响应:', res.data);
-                                                
-                                                if (res.data.success) {
-                                                    console.log('删除成功，开始重新加载评论');
-                                                    // 删除成功，重新加载评论
-                                                    const res = await axios.get(`/api/posts/${postId}/comments`);
-                                                    const comments = res.data;
-                                                    
-                                                    console.log('重新加载的评论数据:', comments);
-                                                    
-                                                    // 重新分组
-                                                    const commentMap = {};
-                                                    const rootComments = [];
-                                                    const flatReplies = [];
-                                                    comments.forEach(comment => {
-                                                        commentMap[comment.idcomments] = comment;
-                                                        if (!comment.parent_id) {
-                                                            rootComments.push(comment);
-                                                        } else {
-                                                            flatReplies.push(comment);
-                                                        }
-                                                    });
-                                                    
-                                                    console.log('重新分组后的数据:', { rootComments, flatReplies });
-                                                    
-                                                    // 重新渲染评论
-                                                    if (comments.length === 0) {
-                                                        otherComments.innerHTML = '<div class="empty-comment">抢个沙发吧</div>';
-                                                    } else {
-                                                        otherComments.innerHTML = rootComments.map(renderComment).join('');
-                                                    }
-                                                    
-                                                    // 重新绑定事件
-                                                    const newCommentItems = otherComments.querySelectorAll('.xijie');
-                                                    newCommentItems.forEach(item => {
-                                                        item.addEventListener('click', function(e) {
-                                                            e.stopPropagation();
-                                                            const commentId = this.dataset.idcomments;
-                                                            const commentName = this.querySelector('.name').textContent;
-                                                            const commentUserId = this.dataset.userid;
-                                                            const parentId = this.dataset.parentId;
-
-                                                            const textarea = cmt.querySelector('textarea');
-                                                            if (parentId) {
-                                                                // 回复的是回复，parentId是被回复评论的parent_id，我们需要的是被回复评论的ID
-                                                                textarea.placeholder = `回复 ${commentName}：`;
-                                                                textarea.dataset.parentId = commentId; // 使用当前评论的ID作为parent_id
-                                                                textarea.dataset.parentUserId = commentUserId;
-                                                            } else {
-                                                                textarea.placeholder = `回复 ${commentName}：`;
-                                                                textarea.dataset.parentId = commentId;
-                                                                textarea.dataset.parentUserId = commentUserId;
-                                                            }
-                                                            textarea.focus();
-                                                        });
-                                                    });
-                                                    
-                                                    // 重新绑定删除按钮事件
-                                                    const newDeleteBtns = otherComments.querySelectorAll('.delete-comment-btn');
-                                                    newDeleteBtns.forEach(btn => {
-                                                        btn.addEventListener('click', arguments.callee);
-                                                    });
-                                                    
-                                                    const successAlert = document.querySelector('.alert-success');
-                                                    if (successAlert) {
-                                                        successAlert.style.display = 'block';
-                                                        successAlert.textContent = '删除成功';
-                                                        setTimeout(() => {
-                                                            successAlert.style.display = 'none';
-                                                        }, 3000);
-                                                    }
-                                                } else {
-                                                    console.log('删除失败:', res.data.message);
-                                                    alert(res.data.message || '删除失败');
-                                                }
-                                            } catch (error) {
-                                                console.error('删除评论失败:', error);
-                                                console.error('错误详情:', error.response?.data);
-                                                const danger = document.querySelector('.alert-danger');
-                                                if (danger) {
-                                                    danger.textContent = '删除失败，请重试';
-                                                    danger.style.display = 'block';
-                                                    setTimeout(() => {
-                                                        danger.style.display = 'none';
-                                                    }, 3000);
-                                                }
-                                            }
-                                        }
-                                    });
-                                });
+                                
+                                // 使用统一的loadCommentsForPost函数来渲染评论
+                                await loadCommentsForPost(postId, pageInfo, otherComments, cmt);
 
                                 // 设置评论提交按钮事件
                                 const submitBtn = cmt.querySelector('.submitComment');
@@ -2907,8 +3024,8 @@ Array.from(forms).forEach(form=>{
             // 不需要额外添加事件监听器，因为使用的是事件委托
         }
 
-        // 图片上传与预览
-        let selectedImages = [];
+    // 图片上传与预览
+let selectedImages = [];
 
 const imageInput = document.getElementById('imageInput');
 const addImageBtn = document.getElementById('addImageBtn');

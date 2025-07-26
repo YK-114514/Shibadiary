@@ -55,47 +55,72 @@ router.get('/me', requireAuth, (req, res) => {
 router.post('/register',(req,res)=>{
     
 
-    console.log(req.body)
+    console.log('注册请求数据:', req.body)
 
-    //检查手机号是否存在
-    db.query('select * from user where phone=?',[req.body.phone],(err,results)=>{
-        if(err){
-            return res.status(500).json(err.message)
+    // 先检查昵称是否存在
+    db.query('select * from user where name=?',[req.body.name],(errName,resultsName)=>{
+        if(errName){
+            console.error('昵称查询错误:', errName);
+            return res.status(500).json('数据库查询错误')
         }
-        if(results.length > 0){
-            return res.status(400).json('手机号已被注册')
+        if(resultsName.length > 0){
+            console.log('昵称已被占用:', req.body.name);
+            return res.status(400).json('该昵称已被占用')
         }else{
-            const newUser = {
-                name:req.body.name,
-                phone:req.body.phone,
-                avatar:'/images/default_avatar.jpg',
-                password:req.body.password
-            }
-             //对密码进行加密+insert新用户
-            bcrypt.genSalt(10, function(err, salt) {
-                bcrypt.hash(newUser.password, salt, function(err, hash) {
-                    // Store hash in your password DB.
-                    if(err) console.log(err.message);
-    
-                    newUser.password = hash;
-    
-                    const userInsert = 'insert into user (name,phone,avatar,password) values (?,?,?,?)'
-    
-                    db.query(userInsert,[newUser.name,newUser.phone,newUser.avatar,newUser.password],(errNew,resultsNew)=>{
-                        if(errNew) return console.log(errNew.message)
-                        if(resultsNew.affectedRows === 1){console.log('插入成功') 
-                            return res.json({ msg: '注册成功' })}
+            console.log('昵称可用，检查手机号...');
+            //检查手机号是否存在
+            db.query('select * from user where phone=?',[req.body.phone],(err,results)=>{
+                if(err){
+                    console.error('手机号查询错误:', err);
+                    return res.status(500).json('数据库查询错误')
+                }
+                if(results.length > 0){
+                    console.log('手机号已被注册:', req.body.phone);
+                    return res.status(400).json('该手机号已被占用')
+                }else{
+                    console.log('手机号可用，开始注册...');
+                    const newUser = {
+                        name:req.body.name,
+                        phone:req.body.phone,
+                        avatar:'/images/default_avatar.jpg',
+                        password:req.body.password
+                    }
+                     //对密码进行加密+insert新用户
+                    bcrypt.genSalt(10, function(err, salt) {
+                        if(err) {
+                            console.error('密码加密错误:', err);
+                            return res.status(500).json('密码加密失败')
+                        }
                         
-                    })
-                });
-            });
-    
-        }
-       
-
-       
-
+                        bcrypt.hash(newUser.password, salt, function(err, hash) {
+                            // Store hash in your password DB.
+                            if(err) {
+                                console.error('密码加密错误:', err);
+                                return res.status(500).json('密码加密失败')
+                            }
         
+                            newUser.password = hash;
+        
+                            const userInsert = 'insert into user (name,phone,avatar,password) values (?,?,?,?)'
+        
+                            db.query(userInsert,[newUser.name,newUser.phone,newUser.avatar,newUser.password],(errNew,resultsNew)=>{
+                                if(errNew) {
+                                    console.error('用户插入错误:', errNew);
+                                    return res.status(500).json('用户注册失败')
+                                }
+                                if(resultsNew.affectedRows === 1){
+                                    console.log('用户注册成功:', newUser.name);
+                                    return res.json({ msg: '注册成功' })
+                                }else{
+                                    console.error('用户插入失败，影响行数:', resultsNew.affectedRows);
+                                    return res.status(500).json('用户注册失败')
+                                }
+                            })
+                        });
+                    });
+                }
+            })
+        }
     })
 })
 

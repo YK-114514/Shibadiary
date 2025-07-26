@@ -32,7 +32,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 p.images as post_images
             FROM message m
             LEFT JOIN user u ON m.from_id = u.id_user
-            LEFT JOIN post_infom p ON m.from_post_id = p.id
+            LEFT JOIN post_infom p ON m.from_post_id = p.id AND m.from_post_id IS NOT NULL
             WHERE m.target_id = ? AND m.from_id != m.target_id
             ORDER BY m.time DESC
         `, [userId]);
@@ -60,6 +60,10 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 case 'reply':
                     content = `${msg.from_user_name || '用户'}回复了你的评论`;
                     type = '回复通知';
+                    break;
+                case 'follow':
+                    content = `${msg.from_user_name || '用户'}关注了你`;
+                    type = '关注通知';
                     break;
                 default:
                     content = msg.content || '新消息';

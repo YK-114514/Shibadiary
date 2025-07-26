@@ -12,12 +12,12 @@
 <body>
    
     <div class="header">
-       
-        <a class="index" href="/index">
-        <img class="logo" src="../images/logo.png"></img>
-        <img class="title" src="../images/title.png"></img>
-        </a>
-       
+        <div class="header-next">
+            <a class="index" href="/index">
+                <img class="logo" src="../images/logo.png">
+                <img class="title" src="../images/title.png">
+            </a>
+        </div>
     </div>
     
         <div class="middle">
@@ -95,7 +95,7 @@ console.log(userId)
                 avatarGet.src = allData.posts[0].avatar
             } else {
                 nameGet.innerHTML = '未知用户'
-                avatarGet.src = '../images/default-avatar.png' // 你可以换成自己的默认头像路径
+                avatarGet.src = '/images/default_avatar.jpg' // 使用正确的默认头像路径
             }
 
             // 设置关注数和粉丝数
@@ -157,7 +157,13 @@ console.log(userId)
         console.log('获取到的帖子数据:', post_Datas);
 
         if (post_Datas.length === 0) {
-            content.innerHTML = '什么也没有哦'
+            content.innerHTML = `
+                <div style="text-align: center; padding: 50px 20px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">📝</div>
+                    <div style="font-size: 18px; margin-bottom: 10px;">还没有发布任何内容</div>
+                    <div style="font-size: 14px;">这个用户还没有发布过帖子哦</div>
+                </div>
+            `
             return
         }
 
@@ -203,11 +209,11 @@ console.log(userId)
             const li = document.createElement('li')
             li.innerHTML = `
                 <div class="mulu-top" style="position:relative;">
-                    <div class="mulu">
+                    <div class="mulu" style="cursor: pointer;" onclick="window.location.href='/post-detail/${post.id}'">
                         <image class="avatar" src=${post.avatar}></image>
                         <div class="list">
                             <div class="divide_row">
-                                <a href="javascript:;" class="uname" data-userid="${post.id_user}">${post.name}</a>
+                                <a href="javascript:;" class="uname" data-userid="${post.id_user}" onclick="event.stopPropagation()">${post.name}</a>
                                 <div class="information">
                                     <div class="divide">
                                         <image class="touxiang" src=${post.avatar}></image>
@@ -223,20 +229,8 @@ console.log(userId)
                             ${picturesHtml}
                             <div class="last">
                                 <p class="time">${formatted}</p>
-                                <div class="others">
-                                    <a href="javascript:;" class="like" data-id="${post.id}">❤ 0</a>
-                                    <a href="javascript:;" class="collect" data-id="${post.id}">⭐ 收藏</a>
-                                    <a href='javascript:;' class="say" data-id="${post.id}">🖊 评论</a>
-                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="comments hidden" data-id="${post.id}">
-                        <div class="inputComment">
-                            <textarea id="my" placeholder="说点什么吧..." maxlength="200"></textarea>
-                            <button class="submitComment">发送</button>
-                        </div>
-                        <div class="otherComments"></div>
                     </div>
                 </div>
             `
