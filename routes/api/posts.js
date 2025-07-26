@@ -98,32 +98,58 @@ router.get('/search', (req, res) => {
     }
     
     const searchKeyword = `%${keyword}%`;
-    const sqlStr = `
+    
+    // 搜索帖子内容
+    const contentSql = `
         SELECT p.*, u.name, u.avatar 
         FROM post_infom p
         LEFT JOIN user u ON p.id_user = u.id_user
-        WHERE (p.content LIKE ?) 
+        WHERE p.content LIKE ? 
         ORDER BY p.time DESC
     `;
     
-    console.log('执行SQL查询:', sqlStr);
-    console.log('查询参数:', [searchKeyword]);
+                        // 搜索用户名 - 去重处理
+                    const userSql = `
+                        SELECT DISTINCT u.id_user, u.name, u.avatar, 
+                               (SELECT MAX(p.time) FROM post_infom p WHERE p.id_user = u.id_user) as latest_post_time
+                        FROM user u
+                        WHERE u.name LIKE ?
+                        ORDER BY latest_post_time DESC
+                    `;
     
-    db.query(sqlStr, [searchKeyword], (err, results) => {
-        if (err) {
-            console.log('搜索错误:', err.message);
-            return res.status(500).json({ success: false, message: '搜索失败' });
-        }
+    console.log('执行内容搜索SQL:', contentSql);
+    console.log('执行用户名搜索SQL:', userSql);
+    console.log('查询参数:', [searchKeyword, searchKeyword]);
+    
+    // 并行执行两个搜索
+    Promise.all([
+        new Promise((resolve, reject) => {
+            db.query(contentSql, [searchKeyword], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        }),
+        new Promise((resolve, reject) => {
+            db.query(userSql, [searchKeyword], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        })
+    ]).then(([contentResults, userResults]) => {
+        console.log('内容搜索结果数量:', contentResults.length);
+        console.log('用户名搜索结果数量:', userResults.length);
         
-        console.log('搜索结果数量:', results.length);
-        console.log('搜索结果:', results);
-        
-        // 即使没有结果也返回成功，让前端处理
         return res.json({
             success: true,
-            data: results || [],
+            data: {
+                content: contentResults || [],
+                users: userResults || []
+            },
             keyword: keyword
         });
+    }).catch(err => {
+        console.log('搜索错误:', err.message);
+        return res.status(500).json({ success: false, message: '搜索失败' });
     });
 });
 

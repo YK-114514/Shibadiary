@@ -51,6 +51,26 @@ router.get('/me', requireAuth, (req, res) => {
     })
 })
 
+// 获取指定用户信息
+router.get('/:userId', (req, res) => {
+    const userId = req.params.userId
+    db.query('SELECT id_user, name, avatar FROM user WHERE id_user=?', [userId], (err, results) => {
+        if (err) {
+            console.error('查询用户信息失败:', err);
+            return res.status(500).json({ success: false, msg: '数据库错误' })
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ success: false, msg: '用户不存在' })
+        }
+        const user = results[0]
+        return res.json({
+            success: true,
+            name: user.name,
+            avatar: user.avatar
+        })
+    })
+})
+
 //register
 router.post('/register',(req,res)=>{
     

@@ -1791,6 +1791,97 @@ nav[aria-label="Page navigation"] {
 }
 
 .prev-page-btn:hover,
+
+/* 搜索过滤按钮样式 */
+.search-filter-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+    margin-bottom: 20px;
+    padding: 0 20px;
+}
+
+.filter-btn {
+    padding: 10px 24px;
+    border: 2px solid #e09620;
+    background: transparent;
+    color: #e09620;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    outline: none;
+    min-width: 80px;
+}
+
+.filter-btn:hover {
+    background: rgba(224, 150, 32, 0.1);
+    transform: translateY(-1px);
+}
+
+.filter-btn.active {
+    background: #e09620;
+    color: white;
+    box-shadow: 0 2px 8px rgba(224, 150, 32, 0.3);
+}
+
+.filter-btn:not(.active) {
+    background: transparent;
+    color: #e09620;
+}
+
+/* 用户名搜索结果样式 */
+.post-item .user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.post-item .user-info .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.post-item .user-info .username {
+    font-weight: 600;
+    color: #333;
+    font-size: 16px;
+}
+
+.post-item .post-content p {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* 用户名搜索结果可点击样式 */
+.user-search-item {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.user-search-item:hover {
+    background-color: rgba(224, 150, 32, 0.1);
+    border-color: #e09620;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(224, 150, 32, 0.2);
+}
+
+.user-search-item .user-info {
+    padding: 15px;
+}
+
+.user-search-item .username {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
 .next-page-btn:hover {
     background: #c68317;
 }

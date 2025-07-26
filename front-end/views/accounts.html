@@ -94,8 +94,21 @@ console.log(userId)
                 nameGet.innerHTML = allData.posts[0].name
                 avatarGet.src = allData.posts[0].avatar
             } else {
-                nameGet.innerHTML = '未知用户'
-                avatarGet.src = '/images/default_avatar.jpg' // 使用正确的默认头像路径
+                // 如果用户没有帖子，需要单独获取用户信息
+                try {
+                    const userInfoRes = await axios.get(`/api/user/${userId}`);
+                    if (userInfoRes.data && userInfoRes.data.name) {
+                        nameGet.innerHTML = userInfoRes.data.name;
+                        avatarGet.src = userInfoRes.data.avatar || '/images/default_avatar.jpg';
+                    } else {
+                        nameGet.innerHTML = '未知用户';
+                        avatarGet.src = '/images/default_avatar.jpg';
+                    }
+                } catch (error) {
+                    console.error('获取用户信息失败:', error);
+                    nameGet.innerHTML = '未知用户';
+                    avatarGet.src = '/images/default_avatar.jpg';
+                }
             }
 
             // 设置关注数和粉丝数

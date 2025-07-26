@@ -131,6 +131,13 @@
                     </button>
                 </div>
             </div>
+            <!-- 搜索结果切换按钮 -->
+            <div class="search-filter-buttons" id="searchFilterButtons" style="display: none;">
+                <button class="filter-btn active" id="contentFilterBtn" data-type="content">内容</button>
+                <button class="filter-btn" id="userFilterBtn" data-type="user">用户名</button>
+            </div>
+            <ul class="content-next">
+            </div>
             <ul class="content-next">
             </ul>
             <!-- 添加分页组件 -->
@@ -388,17 +395,34 @@
             } else {
                 // 定义局部渲染函数
                 function renderReplies(parentId) {
-                    // 获取该评论的所有回复，按时间正序排列
-                    const replies = flatReplies
-                        .filter(reply => reply.parent_id == parentId)
-                        .sort((a, b) => new Date(a.time) - new Date(b.time));
+                    // 获取所有直接回复和嵌套回复
+                    const getAllReplies = (parentId) => {
+                        const directReplies = flatReplies.filter(reply => reply.parent_id == parentId);
+                        let allReplies = [...directReplies];
+                        
+                        // 递归获取所有嵌套回复
+                        directReplies.forEach(reply => {
+                            const nestedReplies = getAllReplies(reply.idcomments);
+                            allReplies = allReplies.concat(nestedReplies);
+                        });
+                        
+                        return allReplies;
+                    };
                     
-                    console.log(`渲染评论 ${parentId} 的回复:`, replies.map(r => r.idcomments));
+                    const allReplies = getAllReplies(parentId);
                     
-                    return replies.map(reply => {
+                    // 按时间升序排序
+                    allReplies.sort((a, b) => {
+                        const timeA = new Date(a.time).getTime();
+                        const timeB = new Date(b.time).getTime();
+                        return timeA - timeB;
+                    });
+                    
+                    console.log(`渲染评论 ${parentId} 的所有回复:`, allReplies.map(r => r.idcomments));
+                    
+                    return allReplies.map(reply => {
                         let showName = reply.name;
                         let content = reply.content;
-                        let marginLeft = '32px'; // 默认缩进
                         
                         // 判断是否是"回复的回复"
                         if (reply.parent_id && reply.parent_user_name && commentMap[reply.parent_id] && commentMap[reply.parent_id].parent_id) {
@@ -406,24 +430,18 @@
                             showName = reply.name;
                             content = `回复${reply.parent_user_name}：${reply.content}`;
                             console.log(`回复的回复 ${reply.idcomments}: ${content}`);
-                            // 与目标回复左对齐，不额外缩进
-                            marginLeft = '32px';
                         } else if (reply.parent_id && reply.parent_user_name) {
                             // 这是回复评论，显示为"xxx 回复 xxx"
                             showName = `${reply.name} 回复 ${reply.parent_user_name}`;
                             console.log(`回复评论 ${reply.idcomments}: ${showName}`);
-                            marginLeft = '32px';
                         }
                         
                         // 检查是否为当前用户的评论
                         const isCurrentUser = userData && reply.id_user == userData.id_user;
                         const deleteBtn = isCurrentUser ? `<button class="delete-comment-btn" data-comment-id="${reply.idcomments}"><i class="bi bi-trash"></i></button>` : '';
                         
-                        // 递归渲染这个回复的回复
-                        const nestedReplies = renderReplies(reply.idcomments);
-                        
                         return `
-                            <div class="xijie" data-idcomments="${reply.idcomments}" data-userid="${reply.id_user}" data-parent-id="${reply.parent_id}" style="margin-left: ${marginLeft};">
+                            <div class="xijie" data-idcomments="${reply.idcomments}" data-userid="${reply.id_user}" data-parent-id="${reply.parent_id}" style="margin-left: 32px;">
                                 <image class="avatar1" src=${reply.avatar}></image>
                                 <div class="exceptA">
                                     <div class='author-container'>
@@ -437,7 +455,6 @@
                                     </div>
                                 </div>
                             </div>
-                            ${nestedReplies}
                         `;
                     }).join('');
                 }
@@ -785,9 +802,20 @@
                 console.log('搜索响应:', response.data);
                 
                 if (response.data.success) {
-                    const searchResults = response.data.data;
-                    console.log('搜索结果数量:', searchResults.length);
-                    displaySearchResults(searchResults, keyword);
+                    const searchData = response.data.data;
+                    console.log('内容搜索结果数量:', searchData.content.length);
+                    console.log('用户名搜索结果数量:', searchData.users.length);
+                    
+                    // 显示搜索过滤按钮
+                    const filterButtons = document.getElementById('searchFilterButtons');
+                    filterButtons.style.display = 'flex';
+                    
+                    // 默认显示内容搜索结果
+                    displaySearchResults(searchData.content, keyword, 'content');
+                    
+                    // 存储搜索结果供切换使用
+                    window.currentSearchData = searchData;
+                    window.currentSearchKeyword = keyword;
                 } else {
                     console.log('搜索失败:', response.data.message);
                     showSearchError(response.data.message);
@@ -828,34 +856,68 @@
         }
 
         // 显示搜索结果
-        async function displaySearchResults(results, keyword) {
+        async function displaySearchResults(results, keyword, searchType = 'content') {
             const contentNext = document.querySelector('.content-next');
             
             if (results.length === 0) {
+                const typeText = searchType === 'content' ? '内容' : '用户名';
                 contentNext.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">🔍</div>
                         <div class="empty-state-title">搜索无结果</div>
-                        <div class="empty-state-description">没有找到包含"${keyword}"的内容</div>
+                        <div class="empty-state-description">没有找到包含"${keyword}"的${typeText}</div>
                     </div>
                 `;
                 return;
             }
 
-            // 只有当有关键词时才添加搜索结果统计
-            if (keyword && keyword.trim() !== '') {
-                const searchStats = document.createElement('div');
-                searchStats.className = 'search-stats';
-                searchStats.innerHTML = `
-                    <div class="search-status">
-                        找到 ${results.length} 条包含"${keyword}"的内容
-                    </div>
-                `;
-                contentNext.innerHTML = '';
-                contentNext.appendChild(searchStats);
-            } else {
-                contentNext.innerHTML = '';
-            }
+                                                // 只有当有关键词时才添加搜索结果统计
+                                    if (keyword && keyword.trim() !== '') {
+                                        const searchStats = document.createElement('div');
+                                        searchStats.className = 'search-stats';
+                                        const typeText = searchType === 'content' ? '内容' : '用户名';
+                                        searchStats.innerHTML = `
+                                            <div class="search-status">
+                                                找到 ${results.length} 条包含"${keyword}"的${typeText}
+                                            </div>
+                                        `;
+                                        contentNext.innerHTML = '';
+                                        contentNext.appendChild(searchStats);
+                                    } else {
+                                        contentNext.innerHTML = '';
+                                    }
+
+                                    // 如果是用户名搜索结果，需要特殊处理显示格式
+                                    if (searchType === 'user') {
+                                        // 显示用户名搜索结果
+                                        results.forEach(user => {
+                                            const userItem = document.createElement('div');
+                                            userItem.className = 'post-item user-search-item';
+                                            userItem.innerHTML = `
+                                                <div class="post-header">
+                                                    <div class="user-info">
+                                                        <img src="${user.avatar}" alt="头像" class="avatar">
+                                                        <span class="username">${user.name}</span>
+                                                    </div>
+                                                </div>
+                                            `;
+                                            
+                                            // 添加点击事件，跳转到用户个人主页
+                                            userItem.addEventListener('click', function() {
+                                                // 如果搜索到的是当前登录用户，跳转到personal页面
+                                                // 否则跳转到accounts页面
+                                                const currentUserId = userData ? userData.id_user : null;
+                                                if (user.id_user == currentUserId) {
+                                                    window.location.href = '/personal';
+                                                } else {
+                                                    window.location.href = `/accounts?id=${user.id_user}`;
+                                                }
+                                            });
+                                            
+                                            contentNext.appendChild(userItem);
+                                        });
+                                        return;
+                                    }
             
             for (let i = 0; i < results.length; i++) {
                 const post = results[i];
@@ -972,6 +1034,32 @@
 
             console.log('搜索组件初始化完成');
             console.log('清除按钮元素:', clearBtn);
+
+            // 搜索过滤按钮事件监听
+            const contentFilterBtn = document.getElementById('contentFilterBtn');
+            const userFilterBtn = document.getElementById('userFilterBtn');
+
+            contentFilterBtn.addEventListener('click', function() {
+                if (!window.currentSearchData) return;
+                
+                // 更新按钮状态
+                contentFilterBtn.classList.add('active');
+                userFilterBtn.classList.remove('active');
+                
+                // 显示内容搜索结果
+                displaySearchResults(window.currentSearchData.content, window.currentSearchKeyword, 'content');
+            });
+
+            userFilterBtn.addEventListener('click', function() {
+                if (!window.currentSearchData) return;
+                
+                // 更新按钮状态
+                userFilterBtn.classList.add('active');
+                contentFilterBtn.classList.remove('active');
+                
+                // 显示用户名搜索结果
+                displaySearchResults(window.currentSearchData.users, window.currentSearchKeyword, 'user');
+            });
 
             searchInput.addEventListener('input', function() {
                 const keyword = this.value.trim();
@@ -1231,6 +1319,14 @@
                     currentSearchRequest = null;
                     console.log('搜索请求已取消');
                 }
+                
+                // 隐藏搜索过滤按钮
+                const filterButtons = document.getElementById('searchFilterButtons');
+                filterButtons.style.display = 'none';
+                
+                // 清除搜索数据
+                window.currentSearchData = null;
+                window.currentSearchKeyword = null;
                 
                 // 直接重新加载页面内容，不依赖复杂的状态管理
                 console.log('开始直接重新加载页面内容');

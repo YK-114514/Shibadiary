@@ -6,21 +6,29 @@ const db = require('../../database/index')
 
 // 获取用户帖子和关注信息
 router.get('/:userId/accounts', (req, res) => {
-    console.log('请求用户数据，用户ID:', req.params.userId);
+    const targetUserId = req.params.userId;
+    console.log('请求用户数据，用户ID:', targetUserId);
+    console.log('请求参数:', req.params);
+    console.log('请求头:', req.headers);
     
     // 获取用户帖子
-    db.query('select p.*, u.name, u.avatar from post_infom p LEFT JOIN user u ON p.id_user = u.id_user where p.id_user=?', [req.params.userId], (err, results) => {
+    db.query('select p.*, u.name, u.avatar from post_infom p LEFT JOIN user u ON p.id_user = u.id_user where p.id_user=?', [targetUserId], (err, results) => {
         if (err) {
             console.error('查询用户帖子失败:', err);
             return res.status(500).json({ error: '数据库查询失败' });
         }
 
+        console.log('查询到的帖子数量:', results.length);
+        console.log('查询到的帖子:', results);
+
         // 查询user表的following和fans字段
-        db.query('SELECT following, fans FROM user WHERE id_user = ?', [req.params.userId], (err, userResults) => {
+        db.query('SELECT following, fans FROM user WHERE id_user = ?', [targetUserId], (err, userResults) => {
             if (err) {
                 console.error('查询用户信息失败:', err);
                 return res.status(500).json({ error: '数据库查询失败' });
             }
+
+            console.log('查询到的用户信息:', userResults);
 
             let followingCount = 0;
             let followersCount = 0;
@@ -41,6 +49,7 @@ router.get('/:userId/accounts', (req, res) => {
                 followers: followersCount
             }
 
+            console.log('返回的数据:', response);
             return res.json(response)
         })
     })

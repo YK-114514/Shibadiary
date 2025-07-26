@@ -755,35 +755,64 @@
 
                 // 渲染回复
                 function renderReplies(parentId) {
-                    return flatReplies
-                        .filter(reply => reply.parent_id == parentId)
-                        .map(reply => {
-                            let showName = reply.name;
-                            if (reply.parent_id && reply.parent_user_name && commentMap[reply.parent_id] && commentMap[reply.parent_id].parent_id) {
-                                showName = `${reply.name} 回复 ${reply.parent_user_name}`;
-                            }
-                            
-                            // 检查是否为当前用户的评论
-                            const isCurrentUser = userData && reply.id_user == userData.id_user;
-                            const deleteBtn = isCurrentUser ? `<button class="delete-comment-btn" data-comment-id="${reply.idcomments}"><i class="bi bi-trash"></i></button>` : '';
-                            
-                            return `
-                                <div class="comment-item" data-idcomments="${reply.idcomments}" data-userid="${reply.id_user}" data-parent-id="${reply.parent_id}">
-                                    <img class="comment-avatar" src="${reply.avatar}" alt="头像">
-                                    <div class="comment-content">
-                                        <div class="comment-author">
-                                            <a href="javascript:;" class="name" data-userid="${reply.id_user}">${showName}</a>
-                                            ${deleteBtn}
-                                        </div>
-                                        <div class="comment-text">${reply.content}</div>
-                                        <div class="comment-meta">
-                                            <span class="comment-time">${formatFriendlyTime(reply.time)}</span>
-                                            <span class="reply-btn" data-user="${reply.name}" data-id="${reply.idcomments}">回复</span>
-                                        </div>
+                    // 获取所有直接回复和嵌套回复
+                    const getAllReplies = (parentId) => {
+                        const directReplies = flatReplies.filter(reply => reply.parent_id == parentId);
+                        let allReplies = [...directReplies];
+                        
+                        // 递归获取所有嵌套回复
+                        directReplies.forEach(reply => {
+                            const nestedReplies = getAllReplies(reply.idcomments);
+                            allReplies = allReplies.concat(nestedReplies);
+                        });
+                        
+                        return allReplies;
+                    };
+                    
+                    const allReplies = getAllReplies(parentId);
+                    
+                    // 按时间升序排序
+                    allReplies.sort((a, b) => {
+                        const timeA = new Date(a.time).getTime();
+                        const timeB = new Date(b.time).getTime();
+                        return timeA - timeB;
+                    });
+                    
+                    let html = '';
+                    
+                    allReplies.forEach(reply => {
+                        let showName = reply.name;
+                        let content = reply.content;
+                        
+                        // 判断是否是"回复的回复"
+                        if (reply.parent_id && reply.parent_user_name && commentMap[reply.parent_id] && commentMap[reply.parent_id].parent_id) {
+                            showName = reply.name;
+                            content = `回复${reply.parent_user_name}：${reply.content}`;
+                        }
+                        
+                        // 检查是否为当前用户的评论
+                        const isCurrentUser = userData && reply.id_user == userData.id_user;
+                        const deleteBtn = isCurrentUser ? `<button class="delete-comment-btn" data-comment-id="${reply.idcomments}"><i class="bi bi-trash"></i></button>` : '';
+                        
+                        html += `
+                            <div class="comment-item" data-idcomments="${reply.idcomments}" data-userid="${reply.id_user}" data-parent-id="${reply.parent_id}">
+                                <img class="comment-avatar" src="${reply.avatar}" alt="头像">
+                                <div class="comment-content">
+                                    <div class="comment-author">
+                                        <a href="javascript:;" class="name" data-userid="${reply.id_user}">${showName}</a>
+                                        ${deleteBtn}
+                                    </div>
+                                    <div class="comment-text">${content}</div>
+                                    <div class="comment-meta">
+                                        <span class="comment-time">${formatFriendlyTime(reply.time)}</span>
+                                        <span class="reply-btn" data-user="${reply.name}" data-id="${reply.idcomments}">回复</span>
                                     </div>
                                 </div>
-                            `;
-                        }).join('');
+                            </div>
+                        `;
+                    });
+                    
+                    return html;
                 }
 
                 // 渲染评论
@@ -849,58 +878,62 @@
                     });
                 });
 
-                // 设置评论提交功能
-                const submitBtn = document.querySelector('.submit-comment-btn');
-                const textarea = document.querySelector('.comment-textarea');
+                // 设置评论提交功能（只在第一次加载时绑定）
+                if (!window.commentSubmitBound) {
+                    const submitBtn = document.querySelector('.submit-comment-btn');
+                    const textarea = document.querySelector('.comment-textarea');
 
-                submitBtn.addEventListener('click', async () => {
-                    if (!localStorage.getItem('eleToken')) {
-                        alert('请先登录');
-                        return;
-                    }
+                    submitBtn.addEventListener('click', async () => {
+                        if (!localStorage.getItem('eleToken')) {
+                            alert('请先登录');
+                            return;
+                        }
 
-                    const content = textarea.value.trim();
-                    if (!content) {
-                        alert('请输入评论内容');
-                        return;
-                    }
+                        const content = textarea.value.trim();
+                        if (!content) {
+                            alert('请输入评论内容');
+                            return;
+                        }
 
-                    // 检查是否为回复
-                    const parentId = textarea.dataset.parentId;
-                    const parentUser = textarea.dataset.parentUser;
-                    const parentUserId = textarea.dataset.parentUserId;
-                    
-                    const commentData = {
-                        content: content,
-                        id_user: userData.id_user,
-                        id_from_post: postId
-                    };
+                        // 检查是否为回复
+                        const parentId = textarea.dataset.parentId;
+                        const parentUser = textarea.dataset.parentUser;
+                        const parentUserId = textarea.dataset.parentUserId;
+                        
+                        const commentData = {
+                            content: content,
+                            id_user: userData.id_user,
+                            id_from_post: postId
+                        };
 
-                    // 如果是回复，添加父评论信息
-                    if (parentId) {
-                        commentData.parent_id = parentId;
-                        commentData.parent_user_id = parentUserId; // 使用被回复用户的ID
-                    }
+                        // 如果是回复，添加父评论信息
+                        if (parentId) {
+                            commentData.parent_id = parentId;
+                            commentData.parent_user_id = parentUserId; // 使用被回复用户的ID
+                        }
 
-                    try {
-                        const res = await axios.post('/api/posts/comments', commentData);
+                        try {
+                            const res = await axios.post('/api/posts/comments', commentData);
 
-                        if (res.data && res.data.success) {
-                            textarea.value = '';
-                            // 清除回复状态
-                            textarea.placeholder = '说点什么吧...';
-                            delete textarea.dataset.parentId;
-                            delete textarea.dataset.parentUser;
-                            delete textarea.dataset.parentUserId;
-                            loadComments(postId);
-                        } else {
+                            if (res.data && res.data.success) {
+                                textarea.value = '';
+                                // 清除回复状态
+                                textarea.placeholder = '说点什么吧...';
+                                delete textarea.dataset.parentId;
+                                delete textarea.dataset.parentUser;
+                                delete textarea.dataset.parentUserId;
+                                loadComments(postId);
+                            } else {
+                                alert('评论失败，请重试');
+                            }
+                        } catch (error) {
+                            console.error('评论失败:', error);
                             alert('评论失败，请重试');
                         }
-                    } catch (error) {
-                        console.error('评论失败:', error);
-                        alert('评论失败，请重试');
-                    }
-                });
+                    });
+                    
+                    window.commentSubmitBound = true;
+                }
 
             } catch (error) {
                 console.error('加载评论失败:', error);
@@ -1053,13 +1086,21 @@
                 const commentItem = target.closest('.comment-item');
                 const parentUserId = commentItem ? commentItem.dataset.userid : null;
                 
+                // 判断是否是回复的回复
+                const isReplyToReply = commentItem && commentItem.dataset.parentId && commentItem.dataset.parentId !== '';
+                
                 // 设置placeholder
-                textarea.placeholder = `回复 ${replyUser}：`;
+                if (isReplyToReply) {
+                    textarea.placeholder = `回复 ${replyUser}：`;
+                } else {
+                    textarea.placeholder = `回复 ${replyUser}：`;
+                }
                 
                 // 存储回复信息
                 textarea.dataset.parentId = replyId;
                 textarea.dataset.parentUser = replyUser;
                 textarea.dataset.parentUserId = parentUserId;
+                textarea.dataset.isReplyToReply = isReplyToReply ? 'true' : 'false';
                 
                 // 滚动到输入框
                 textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
