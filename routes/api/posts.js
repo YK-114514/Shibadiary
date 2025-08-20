@@ -4,12 +4,39 @@ const passport = require('passport')
 const jwt = require('jsonwebtoken');
 const db = require('../../database/index')
 const multer = require('multer');
+const path = require('path');
+
+// 配置multer存储，保留文件后缀
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/');
+    },
+    filename: function (req, file, cb) {
+        // 保留原始文件后缀，文件名格式：时间戳_原始文件名
+        const ext = path.extname(file.originalname);
+        const nameWithoutExt = path.basename(file.originalname, ext);
+        const timestamp = Date.now();
+        cb(null, `${timestamp}_${nameWithoutExt}${ext}`);
+    }
+});
+
 const upload = multer({ 
-    dest: 'uploads/',
+    storage: storage,
     limits: {
         fileSize: 10 * 1024 * 1024 // 限制文件大小为10MB
     }
 }); // 保存到本地 uploads 目录
+
+// 获取Socket.IO实例
+let io = null;
+
+// 提供一个函数来设置Socket.IO实例
+function setSocketIO(socketIO) {
+    io = socketIO;
+}
+
+// 导出设置函数
+module.exports.setSocketIO = setSocketIO;
 
 console.log('✅ posts路由模块加载');
 
@@ -163,7 +190,10 @@ router.get('/index', (req, res) => {
     
     // 获取帖子总数
     db.query('SELECT COUNT(*) as total FROM post_infom', (err, countResult) => {
-        if (err) throw err
+        if (err) {
+            console.log('获取帖子总数失败:', err.message)
+            return res.status(500).json({ error: '获取帖子总数失败' })
+        }
         
         const total = countResult[0].total;
         const totalPages = Math.ceil(total / limit);
@@ -173,7 +203,10 @@ router.get('/index', (req, res) => {
         // 获取分页帖子
         db.query('SELECT p.*, u.name, u.avatar FROM post_infom p LEFT JOIN user u ON p.id_user = u.id_user ORDER BY p.time DESC LIMIT ? OFFSET ?', 
             [limit, offset], (err, results) => {
-            if (err) throw err
+            if (err) {
+                console.log('获取分页帖子失败:', err.message)
+                return res.status(500).json({ error: '获取分页帖子失败' })
+            }
             
             console.log('首页查询到的帖子数量:', results.length);
             
@@ -216,7 +249,10 @@ router.get('/indexLike', (req, res) => {
     
     // 获取帖子总数
     db.query('SELECT COUNT(*) as total FROM post_infom', (err, countResult) => {
-        if (err) throw err
+        if (err) {
+            console.log('获取帖子总数失败:', err.message)
+            return res.status(500).json({ error: '获取帖子总数失败' })
+        }
         
         const total = countResult[0].total;
         const totalPages = Math.ceil(total / limit);
@@ -237,7 +273,10 @@ router.get('/indexLike', (req, res) => {
         console.log('查询参数:', [limit, offset]);
         
         db.query(sqlStr, [limit, offset], (err, results) => {
-            if (err) throw err
+            if (err) {
+                console.log('获取点赞排序帖子失败:', err.message)
+                return res.status(500).json({ error: '获取点赞排序帖子失败' })
+            }
             
             console.log('点赞排序查询到的帖子数量:', results.length);
             
@@ -512,6 +551,23 @@ router.post(
                 }
                 if(postResult.length > 0) {
                     console.log('新帖子信息:', postResult[0]);
+                    
+                    // 发送WebSocket通知
+                    try {
+                        if (io) {
+                            // 广播新帖子通知给所有在线用户
+                            io.emit('newPost', {
+                                post: postResult[0],
+                                authorId: req.user.id_user,
+                                authorName: req.user.name || '用户',
+                                timestamp: new Date()
+                            });
+                            console.log('发送新帖子WebSocket通知');
+                        }
+                    } catch (wsError) {
+                        console.log('发送WebSocket通知失败:', wsError.message);
+                    }
+                    
                     return res.json(postResult[0]);
                 } else {
                     return res.status(500).json('获取新帖子信息失败');
@@ -771,6 +827,43 @@ router.post('/addLike', passport.authenticate('jwt', { session: false }), async 
                 } catch (msgError) {
                     console.log('删除点赞消息失败:', msgError.message);
                 }
+                
+                // 发送WebSocket通知
+                try {
+                    if (io) {
+                        // 获取用户信息
+                        const userResult = await query('SELECT name FROM user WHERE id_user = ?', [userId]);
+                        const likerName = userResult.length > 0 ? userResult[0].name : '用户';
+                        
+                        // 获取帖子作者信息
+                        const postResult = await query('SELECT id_user FROM post_infom WHERE id = ?', [fromPostId]);
+                        const postOwnerId = postResult.length > 0 ? postResult[0].id_user : null;
+                        
+                        if (postOwnerId && postOwnerId !== userId) {
+                            io.emit('newLike', {
+                                postId: fromPostId,
+                                likerId: userId,
+                                likerName: likerName,
+                                postOwnerId: postOwnerId,
+                                action: 'unlike'
+                            });
+                            console.log('发送取消点赞WebSocket通知');
+                        }
+                        
+                        // 发送点赞数更新
+                        const likeCountResult = await query('SELECT COUNT(*) as count FROM likes WHERE id_from_post = ?', [fromPostId]);
+                        const likeCount = likeCountResult[0].count;
+                        
+                        io.emit('likeCountUpdate', {
+                            postId: fromPostId,
+                            likeCount: likeCount,
+                            isLiked: false
+                        });
+                    }
+                } catch (wsError) {
+                    console.log('发送WebSocket通知失败:', wsError.message);
+                }
+                
                 return res.json({ success: true, message: '取消成功' });
             } else {
                 console.error('删除点赞记录失败，影响行数:', deleteLikeResult.affectedRows);
@@ -797,6 +890,23 @@ router.post('/addLike', passport.authenticate('jwt', { session: false }), async 
                 // 检查是否是自己给自己点赞
                 if (parseInt(userId) === parseInt(targetId)) {
                     console.log('用户给自己点赞，不发送消息通知');
+                    
+                    // 发送WebSocket通知（即使是自己点赞也要更新点赞数）
+                    try {
+                        if (io) {
+                            const likeCountResult = await query('SELECT COUNT(*) as count FROM likes WHERE id_from_post = ?', [fromPostId]);
+                            const likeCount = likeCountResult[0].count;
+                            
+                            io.emit('likeCountUpdate', {
+                                postId: fromPostId,
+                                likeCount: likeCount,
+                                isLiked: true
+                            });
+                        }
+                    } catch (wsError) {
+                        console.log('发送WebSocket通知失败:', wsError.message);
+                    }
+                    
                     return res.json({ success: true, message: '点赞成功' });
                 }
                 
@@ -829,6 +939,37 @@ router.post('/addLike', passport.authenticate('jwt', { session: false }), async 
                 } catch (msgError) {
                     console.error('插入点赞消息失败:', msgError.message);
                     // 即使消息插入失败，也不影响点赞功能
+                }
+                
+                // 发送WebSocket通知
+                try {
+                    if (io) {
+                        // 获取用户信息
+                        const userResult = await query('SELECT name FROM user WHERE id_user = ?', [userId]);
+                        const likerName = userResult.length > 0 ? userResult[0].name : '用户';
+                        
+                        // 发送点赞通知
+                        io.emit('newLike', {
+                            postId: fromPostId,
+                            likerId: userId,
+                            likerName: likerName,
+                            postOwnerId: targetId,
+                            action: 'like'
+                        });
+                        console.log('发送点赞WebSocket通知');
+                        
+                        // 发送点赞数更新
+                        const likeCountResult = await query('SELECT COUNT(*) as count FROM likes WHERE id_from_post = ?', [fromPostId]);
+                        const likeCount = likeCountResult[0].count;
+                        
+                        io.emit('likeCountUpdate', {
+                            postId: fromPostId,
+                            likeCount: likeCount,
+                            isLiked: true
+                        });
+                    }
+                } catch (wsError) {
+                    console.log('发送WebSocket通知失败:', wsError.message);
                 }
                 
                 return res.json({ success: true, message: '点赞成功' });
@@ -899,4 +1040,5 @@ router.delete('/comments/:commentId', passport.authenticate('jwt', { session: fa
     }
 });
 
-module.exports = router
+module.exports = router;
+module.exports.setSocketIO = setSocketIO;

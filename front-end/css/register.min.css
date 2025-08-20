@@ -1,0 +1,357 @@
+/*body,html{height:100%;margin:0;padding:0;background:linear-gradient(145deg,#fdf6f0,#ffe5d0);font-family:"Noto Sans SC","PingFang SC",sans-serif;min-height:100vh}
+body::after{content:"";position:absolute;top:0;left:0;width:100%;height:100%;opacity:.3;z-index:-1}
+.header-container{position:fixed;top:0;width:100%;height:80px;background:linear-gradient(to right,#fcfbf5,#f6efe1);box-shadow:0 2px 10px rgba(0,0,0,.05);display:flex;justify-content:center;align-items:center;z-index:100}
+.header-next{width:1200px;height:100%;display:flex;align-items:center;padding:0}
+.header{display:flex;align-items:center;text-decoration:none}
+.header .logo{width:70px;height:70px;margin-right:0;transition:transform .3s;margin-left:-60px}
+.header .title{height:130px;margin-left:20px}
+.login{position:absolute;right:50px;top:50%;transform:translateY(-50%)}
+.login a{color:#000}
+.square{margin-top:30px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:380px;background:#ffffffee;border-radius:20px;box-shadow:0 6px 30px rgba(0,0,0,.08);padding:40px;display:flex;flex-direction:column;align-items:stretch}
+.alert{position:fixed;z-index:1000;top:80px;left:50%;transform:translateX(-50%);width:380px;text-align:center;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.alert-success{background-color:#d4edda;border:1px solid #c3e6cb;color:#155724}
+.alert-danger{background-color:#f8d7da;border:1px solid #f5c6cb;color:#721c24}
+.square h3{font-size:22px;font-weight:700;color:#c68317;margin-bottom:20px;text-align:center;letter-spacing:1px}
+.square input[type=password],.square input[type=tel],.square input[type=text]{width:100%;padding:10px 12px;margin-bottom:12px;border:1px solid #e6cfa4;border-radius:8px;font-size:15px;background:#fffdf9;transition:border .2s;outline:0;box-shadow:inset 0 1px 2px rgba(0,0,0,.05)}
+.square input:focus{border:1px solid #cda462;background:#fff}
+.square input::placeholder{color:#cda462;opacity:.8}
+.square button,.square input[type=submit]{width:100%;padding:10px 0;background:linear-gradient(to right,#ffb347,#fc3);color:#fff;font-size:16px;font-weight:700;border:none;border-radius:8px;box-shadow:0 4px 12px rgba(255,180,70,.2);cursor:pointer;transition:background .2s,box-shadow .2s;margin-top:16px}
+.square button:hover,.square input[type=submit]:hover{background:linear-gradient(to right,#fa3,#ffd666);box-shadow:0 6px 20px rgba(255,180,70,.25)}
+.square label{font-size:14px;color:#b08d57;margin-bottom:4px;display:block;font-weight:500}*/
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(145deg, #fdf6f0, #ffe5d0);
+    font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+    min-height: 100vh;
+    min-width: 800px; /* 设置最小宽度 */
+    overflow-x: auto; /* 当宽度不足时显示横向滚动条 */
+}
+
+body::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.3;
+    z-index: -1;
+}
+
+.header-container {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    height: 80px;
+    background: linear-gradient(to right, #fcfbf5, #f6efe1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    min-width: 800px; /* 设置最小宽度 */
+}
+
+.header-next {
+    width: 1200px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    min-width: 800px; /* 设置最小宽度 */
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.header .logo {
+    width: 70px;
+    height: 70px;
+    margin-right: 0px;
+    transition: transform 0.3s ease;
+    margin-left: -60px;
+}
+
+.header .title {
+    height: 130px;
+    margin-left: 20px;
+}
+
+.login {
+    position: absolute;
+    right: 50px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.login a {
+    color: black;
+}
+
+
+.square {
+    margin-top:30px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 380px;
+    background: #ffffffee;
+    border-radius: 20px;
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.08);
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.alert {
+    position: fixed;
+    z-index: 1000;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 380px;
+    text-align: center;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.square h3 {
+    font-size: 22px;
+    font-weight: bold;
+    color: #c68317;
+    margin-bottom: 20px;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.square input[type="text"],
+.square input[type="password"],
+.square input[type="tel"] {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border: 1px solid #e6cfa4;
+    border-radius: 8px;
+    font-size: 15px;
+    background: #fffdf9;
+    transition: border 0.2s;
+    outline: none;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.square input:focus {
+    border: 1px solid #cda462;
+    background: #fff;
+}
+
+.square input::placeholder {
+    color: #cda462;
+    opacity: 0.8;
+}
+
+.square button,
+.square input[type="submit"] {
+    width: 100%;
+    padding: 10px 0;
+    background: linear-gradient(to right, #ffb347, #ffcc33);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(255, 180, 70, 0.2);
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    margin-top: 16px;
+}
+
+.square button:hover,
+.square input[type="submit"]:hover {
+    background: linear-gradient(to right, #ffaa33, #ffd666);
+    box-shadow: 0 6px 20px rgba(255, 180, 70, 0.25);
+}
+
+.square label {
+    font-size: 14px;
+    color: #b08d57;
+    margin-bottom: 4px;
+    display: block;
+    font-weight: 500;
+}
+
+/* 响应式设计 */
+@media (max-width: 1400px) {
+    .header-next {
+        width: 100%;
+        max-width: 1200px;
+        padding: 0 20px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .header-next {
+        padding: 0 15px;
+    }
+    
+    .square {
+        width: 350px;
+        padding: 35px;
+    }
+}
+
+@media (max-width: 992px) {
+    .header-next {
+        padding: 0 10px;
+    }
+    
+    .square {
+        width: 320px;
+        padding: 30px;
+    }
+    
+    .square h3 {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        height: 70px;
+    }
+    
+    .header-next {
+        padding: 0 10px;
+        justify-content: space-between;
+    }
+    
+    .header .logo {
+        width: 60px;
+        height: 60px;
+        margin-left: 0;
+    }
+    
+    .header .title {
+        height: 100px;
+        margin-left: 10px;
+    }
+    
+    .login {
+        font-size: 12px;
+    }
+    
+    .square {
+        width: 300px;
+        padding: 25px;
+    }
+    
+    .square h3 {
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+    
+    .square input[type="text"],
+    .square input[type="password"],
+    .square input[type="tel"] {
+        font-size: 14px;
+        padding: 8px 10px;
+    }
+    
+    .square button,
+    .square input[type="submit"] {
+        font-size: 14px;
+        padding: 8px 0;
+    }
+    
+    .alert {
+        width: 300px;
+    }
+}
+
+@media (max-width: 576px) {
+    .header {
+        height: 60px;
+    }
+    
+    .header-next {
+        padding: 0 5px;
+    }
+    
+    .header .logo {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .header .title {
+        height: 80px;
+        margin-left: 5px;
+    }
+    
+    .login {
+        font-size: 11px;
+    }
+    
+    .square {
+        width: 280px;
+        padding: 20px;
+    }
+    
+    .square h3 {
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+    
+    .square input[type="text"],
+    .square input[type="password"],
+    .square input[type="tel"] {
+        font-size: 13px;
+        padding: 6px 8px;
+    }
+    
+    .square button,
+    .square input[type="submit"] {
+        font-size: 13px;
+        padding: 6px 0;
+    }
+    
+    .alert {
+        width: 280px;
+    }
+}
+
+/* 当屏幕宽度小于800px时，显示横向滚动条 */
+@media (max-width: 799px) {
+    body {
+        overflow-x: auto;
+    }
+    
+    .header-container {
+        min-width: 800px;
+    }
+    
+    .header-next {
+        min-width: 800px;
+    }
+    
+    .square {
+        min-width: 350px;
+    }
+}

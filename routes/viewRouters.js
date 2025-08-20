@@ -52,11 +52,9 @@ router.get('/personal', (req, res) => {
   });
 });
 // 主页及其子页面
-router.get('/', (req, res) => {
-  res.redirect('/index');
-});
-router.get(['/index', '/index/post', '/index/ask', '/index/friend', '/index/collect'], (req, res) => {
+router.get(['/', '/index', '/index/post', '/index/ask', '/index/friend', '/index/collect'], (req, res) => {
   const filePath = path.join(__dirname, '../front-end/views/index.html');
+  res.set('Cache-Control', 'public, max-age=0, s-maxage=300, stale-while-revalidate=60, stale-if-error=86400');
   res.sendFile(filePath, (err) => {
     if (err) {
       console.error('文件发送错误:', err);
@@ -112,6 +110,16 @@ router.get('/post-detail/:id', (req, res) => {
   });
 });
 
-
+// WebSocket 测试页面路由
+router.get('/websocket-test', (req, res) => {
+  const filePath = path.join(__dirname, '../front-end/views/websocket-test.html');
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('文件发送错误:', err);
+      console.log('尝试访问的文件路径:', filePath);
+      res.status(500).send('无法加载WebSocket测试页面');
+    }
+  });
+});
 
 module.exports = router;

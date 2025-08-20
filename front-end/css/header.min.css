@@ -1,0 +1,24 @@
+.father{position:relative;width:100%}
+.header{position:fixed;background:linear-gradient(to right,#fcfbf5,#f6efe1);box-shadow:0 2px 10px rgba(0,0,0,.05);top:0;width:100%;height:80px;display:flex;justify-content:center;align-items:center;z-index:100}
+.header-next{width:1200px;height:100%;display:flex;align-items:center;padding:0}
+.logo{width:70px;height:70px;margin-right:0;transition:transform .3s;margin-left:-60px}
+.title{height:130px;margin-left:20px}
+.topics{display:flex;list-style:none;margin:0 0 0 300px;padding:0;gap:40px}
+.topics li a{text-decoration:none;color:#666;font-size:16px;padding:8px 16px;border-radius:20px;transition:.3s;position:relative}
+.topics li a:hover{color:#e09620;background-color:rgba(224,150,32,.1)}
+.topics li a.active{color:#e09620;background-color:rgba(224,150,32,.1);font-weight:500}
+.login-header{display:flex;align-items:center;gap:15px;margin-left:320px}
+.login-header a{text-decoration:none;color:#666;font-size:14px;padding:6px 15px;border-radius:20px;transition:.3s}
+.login-header a:hover{color:#e09620;background-color:rgba(224,150,32,.1)}
+.user-menu{position:relative;cursor:pointer;display:flex;align-items:center;gap:5px}
+.user-menu::after{content:'';display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid #666;margin-left:5px;transition:transform .3s}
+.user-menu:hover::after{transform:rotate(180deg)}
+.user-dropdown{position:absolute;top:100%;right:0;background:#fff;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.1);padding:8px 0;min-width:150px;display:none;z-index:1000}
+.user-dropdown.show{display:block;animation:.3s fadeIn}
+@keyframes fadeIn{
+from{opacity:0;transform:translateY(-10px)}
+to{opacity:1;transform:translateY(0)}
+}
+.user-dropdown a{display:block;padding:8px 16px;color:#666;text-decoration:none;transition:.3s}
+.user-dropdown a:hover{background-color:rgba(224,150,32,.1);color:#e09620}
+.message-dot{display:inline-block;width:6px;height:6px;background-color:#ff4d4f;border-radius:50%;margin-left:5px;vertical-align:middle}

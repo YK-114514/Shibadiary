@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>小柴日记 - 快速加载版本</title>
+        
+        <!-- 资源预加载 -->
+        <link rel="preload" href="../css/index.min.css" as="style">
+        <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" as="style">
+        <link rel="preload" href="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js" as="script">
+        <link rel="preload" href="../images/logo.png" as="image">
+        <link rel="preload" href="../images/title.png" as="image">
+        
+        <!-- DNS预解析 -->
+        <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+        <link rel="dns-prefetch" href="//fonts.googleapis.com">
+        <link rel="dns-prefetch" href="//fonts.gstatic.com">
+        <link rel="dns-prefetch" href="//cdn.socket.io">
+        
+        <!-- 关键CSS -->
+        <link rel="stylesheet" href="../css/index.min.css">
+        <link rel="stylesheet" href="../css/responsive-fix.css">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
+        
+        <!-- 关键JS -->
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script src="../http.js"></script>
+        
+        <!-- 非关键资源 -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+        
+        <!-- 加载优化脚本 -->
+        <script>
+            // 页面加载优化
+            document.addEventListener('DOMContentLoaded', function() {
+                // 延迟加载非关键资源
+                setTimeout(() => {
+                    const nonCriticalImages = document.querySelectorAll('img[data-src]');
+                    nonCriticalImages.forEach(img => {
+                        img.src = img.dataset.src;
+                        img.removeAttribute('data-src');
+                    });
+                }, 1000);
+            });
+            
+            // 预加载关键资源
+            window.addEventListener('load', function() {
+                // 预加载下一页可能需要的资源
+                const links = document.querySelectorAll('a[href]');
+                links.forEach(link => {
+                    if (link.href.includes('/personal') || link.href.includes('/message')) {
+                        const prefetchLink = document.createElement('link');
+                        prefetchLink.rel = 'prefetch';
+                        prefetchLink.href = link.href;
+                        document.head.appendChild(prefetchLink);
+                    }
+                });
+            });
+        </script>
+    </head>
+<body>
+    <!-- 引入header组件 -->
+    <div class="father">
+    
+        <div class='header'>
+           <div class="header-next">
+                <image class="logo" src="../images/logo.png" loading="eager"></image>
+                <image class="title" src="../images/title.png" loading="eager"></image>
+                <ul class="topics">
+                    <li >
+                        <a href="/index" class="active" data-id="1">宠物博客</a>
+                    </li>
+                    <li>
+                        <a data-id="2" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;" title="功能开发中">宠物问答</a>
+                    </li>
+                  
+                </ul>
+              <div class="login-header">
+                <a href="/login" class="before-login">登录</a>
+                <a href="javascript:;" class="user-menu" style="display:none">
+                    欢迎，<span class="username"></span>
+                   
+                </a>
+                <div class="user-dropdown">
+                    <a href="/personal">个人信息</a>
+                    <a href="/message">消息中心<span class="message-dot"></span></a>
+                    <a href="javascript:;" id="logout">退出登录</a>
+                </div>
+               </div>
+               
+            </div>
+        </div>
+    
+
+    <!-- 左侧菜单栏-->
+    <div class="next">
+        <div class="menu">
+            <div class="menu-next">
+                <ul class="part">
+                   
+                        <a href="javascript:;" onclick="navigate('post')" class="active" data-id="1">晒图</a>
+                    
+                  
+                   
+                        <a href="javascript:;" onclick="navigate('friend')" data-id="3">好友</a>
+                    
+                        <a href="javascript:;" onclick="navigate('collect')" data-id="4">收藏</a>
+                   
+
+                </ul>
+            </div>
+            <!-- 添加内容按钮 -->
+
+        <img class='adding' src="../images/add.png" alt="添加" onclick="showAdding()" loading="lazy">
+
+
+    <!-- 添加内容弹窗 -->
+    <div class="adding_content" style="display:none">
+        <div class="top_new">
+            <h3 class="title">添加内容</h3>
+            <a href="javascript:;" class="out" onclick="closeAdding()">×</a>
+        </div>
+        <form id="contentForm" class="row g-3 needs-validation" novalidate enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="contentType" class="form-label">类型</label>
+                <select class="form-control" id="contentType" required>
+                    <option value="帖子">帖子</option>
+                    <option value="问答" disabled>问答 (开发中)</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="content" class="form-label">内容</label>
+                <textarea class="form-control" id="content" rows="3" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">图片（最多9张）</label>
+                <div class="image-upload-area" id="imageUploadArea">
+                    <input type="file" id="imageInput" accept="image/*" multiple style="display:none">
+                    <div class="image-grid" id="imageGrid">
+                        <div class="add-image-btn" id="addImageBtn">+</div>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-secondary">发布</button>
+        </form>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="content">
+        <div class="content-next">
+            <!-- 帖子列表容器 -->
+            <div id="postContainer"></div>
+            
+            <!-- 加载更多按钮 -->
+            <div id="loadMoreContainer" style="text-align: center; margin: 20px 0;">
+                <button id="loadMoreBtn" class="btn btn-primary" style="display: none;">加载更多</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- WebSocket 脚本 -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="../js/websocket.js"></script>
+    
+    <!-- 页面功能脚本 -->
+    <script>
+        // 这里放置原有的JavaScript代码
+        // 为了简化，这里只显示关键部分
+        console.log('页面加载完成，开始初始化...');
+    </script>
+</body>
+</html> 

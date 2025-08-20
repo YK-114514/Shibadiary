@@ -254,16 +254,82 @@ body {
 }
 
 /* 响应式设计 */
-@media (max-width: 768px) {
+@media (max-width: 1400px) {
+    .header {
+        padding: 0 20px;
+    }
+    
     .content {
-        padding: 10px;
-        margin: 10px;
+        max-width: 900px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .header {
+        padding: 0 15px;
+    }
+    
+    .content {
+        max-width: 800px;
+    }
+}
+
+@media (max-width: 992px) {
+    .header {
+        padding: 0 10px;
+    }
+    
+    .content {
+        max-width: 700px;
+        margin: 20px auto;
+        padding: 15px;
+    }
+    
+    .message-header-bar {
+        padding: 15px;
+    }
+    
+    .message-header-bar h2 {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        height: 70px;
+        padding: 0 10px;
+    }
+    
+    .header .logo {
+        width: 60px;
+        height: 60px;
+        margin-left: 0;
+    }
+    
+    .header .title {
+        height: 100px;
+        margin-left: 10px;
+    }
+    
+    .header .setting {
+        font-size: 12px;
+    }
+    
+    .content {
+        max-width: 95%;
+        margin: 20px 10px;
+        padding: 15px;
     }
     
     .message-header-bar {
         flex-direction: column;
         gap: 15px;
         text-align: center;
+        padding: 15px;
+    }
+    
+    .message-header-bar h2 {
+        font-size: 18px;
     }
     
     .message-item {
@@ -276,5 +342,53 @@ body {
     
     .message-content {
         font-size: 14px;
+    }
+}
+
+@media (max-width: 576px) {
+    .header {
+        height: 60px;
+        padding: 0 5px;
+    }
+    
+    .header .logo {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .header .title {
+        height: 80px;
+        margin-left: 5px;
+    }
+    
+    .header .setting {
+        font-size: 11px;
+    }
+    
+    .content {
+        max-width: 100%;
+        margin: 15px 5px;
+        padding: 10px;
+    }
+    
+    .message-header-bar {
+        padding: 10px;
+        gap: 10px;
+    }
+    
+    .message-header-bar h2 {
+        font-size: 16px;
+    }
+    
+    .message-item {
+        padding: 10px;
+    }
+    
+    .message-title {
+        font-size: 14px;
+    }
+    
+    .message-content {
+        font-size: 12px;
     }
 }

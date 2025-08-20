@@ -2,9 +2,8 @@ html body{
     background: linear-gradient(145deg, #f6e3d8, #ffd9aa);
     margin: 0;
     padding: 0;
-   
-    overflow-x: hidden;
-   
+    min-width: 1000px; /* 设置最小宽度 */
+    overflow-x: auto; /* 当宽度不足时显示横向滚动条 */
 }
 
 .father{
@@ -26,6 +25,7 @@ html body{
     justify-content: center;
     align-items: center;
     z-index:100;
+    min-width: 1000px; /* 设置最小宽度 */
 }
 
 .header-next{
@@ -33,8 +33,8 @@ html body{
     height: 100%;
     display: flex;
     align-items: center;
-    
-    padding: 0 ;
+    padding: 0;
+    min-width: 1000px; /* 设置最小宽度 */
 }
 
 .logo{
@@ -274,9 +274,9 @@ html body{
 }
 
 .content{
-    margin-left: 250px;
+    margin-left: 220px;
     margin-top: 85px;
-    width: calc(100% - 290px);
+    width: calc(100% - 260px);
     min-height: calc(100vh - 85px);
     padding-bottom: 40px;
 }
@@ -1431,7 +1431,43 @@ nav[aria-label="Page navigation"] {
 }
 
 /* 响应式设计 */
+@media (max-width: 1400px) {
+    .header-next {
+        width: 100%;
+        max-width: 1200px;
+        padding: 0 20px;
+    }
+    
+    .topics {
+        margin-left: 200px;
+        gap: 30px;
+    }
+    
+    .login-header {
+        margin-left: 200px;
+    }
+    
+    .content {
+        margin-left: 260px;
+        margin-right: 20px;
+        max-width: calc(100% - 280px);
+    }
+}
+
 @media (max-width: 1200px) {
+    .header-next {
+        padding: 0 15px;
+    }
+    
+    .topics {
+        margin-left: 150px;
+        gap: 25px;
+    }
+    
+    .login-header {
+        margin-left: 150px;
+    }
+    
     .right-sidebar {
         display: none;
     }
@@ -1441,7 +1477,83 @@ nav[aria-label="Page navigation"] {
     }
 }
 
+@media (max-width: 992px) {
+    .header-next {
+        padding: 0 10px;
+    }
+    
+    .topics {
+        margin-left: 100px;
+        gap: 20px;
+    }
+    
+    .login-header {
+        margin-left: 100px;
+    }
+    
+    .topics li a {
+        font-size: 14px;
+        padding: 6px 12px;
+    }
+    
+    .login-header a {
+        font-size: 13px;
+        padding: 5px 12px;
+    }
+}
+
 @media (max-width: 768px) {
+    .header {
+        height: 70px;
+    }
+    
+    .header-next {
+        padding: 0 10px;
+        justify-content: space-between;
+        position: relative;
+    }
+    
+    .logo {
+        width: 60px;
+        height: 60px;
+        margin-left: 0;
+        flex-shrink: 0;
+    }
+    
+    .title {
+        height: 100px;
+        margin-left: 10px;
+        flex-shrink: 0;
+    }
+    
+    .topics {
+        margin-left: 0;
+        gap: 15px;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+    }
+    
+    .topics li a {
+        font-size: 13px;
+        padding: 5px 10px;
+        white-space: nowrap;
+    }
+    
+    .login-header {
+        margin-left: 0;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+    
+    .login-header a {
+        font-size: 12px;
+        padding: 4px 10px;
+        white-space: nowrap;
+    }
+}
+    
     .sidebar-card {
         padding: 16px 12px 12px 12px;
     }
@@ -1511,7 +1623,7 @@ nav[aria-label="Page navigation"] {
     
     .adding_content .title {
         font-size: 20px;
-        margin-bottom: 6px; /* 移动端进一步减小间距，从10px改为6px */
+        margin-bottom: 6px;
     }
     
     .adding_content .out {
@@ -1519,7 +1631,122 @@ nav[aria-label="Page navigation"] {
         top: 15px;
         font-size: 20px;
     }
+
+
+@media (max-width: 576px) {
+    .header {
+        height: 60px;
+    }
+    
+    .header-next {
+        padding: 0 5px;
+    }
+    
+    .logo {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .title {
+        height: 80px;
+        margin-left: 5px;
+    }
+    
+    .topics {
+        gap: 10px;
+    }
+    
+    .topics li a {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+    
+    .login-header {
+        gap: 8px;
+    }
+    
+    .login-header a {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+    
+    .menu {
+        left: 5px;
+        width: 160px;
+        padding: 20px 0 16px 0;
+    }
 }
+
+@media (max-width: 1200px) {
+    .content {
+        margin-left: 240px;
+        margin-right: 20px;
+        max-width: calc(100% - 260px);
+        padding: 15px;
+    }
+    
+    .content .content-next .mulu {
+        margin: 30px;
+        max-width: 100%;
+    }
+    
+    .content .content-next .mulu .list .sentences {
+        width: 100%;
+        max-width: 500px;
+    }
+}
+
+@media (max-width: 992px) {
+    .content {
+        margin-left: 220px;
+        margin-right: 15px;
+        max-width: calc(100% - 235px);
+        padding: 12px;
+    }
+    
+    .content .content-next .mulu {
+        margin: 20px;
+    }
+    
+    .content .content-next .mulu .list .sentences {
+        max-width: 400px;
+    }
+    
+    .content .content-next .mulu .list .divide_row .uname {
+        font-size: 16px;
+    }
+}
+
+
+
+/* 确保菜单在所有屏幕尺寸下都保持固定位置 */
+.menu {
+    position: fixed;
+    top: 105px;
+    left: 20px;
+    width: 200px;
+    min-height: 300px;
+    background: linear-gradient(145deg, #fff9f0, #fff5e6);
+    border-radius: 18px;
+    box-shadow: 0 6px 32px rgba(198,131,23,0.10), 0 1.5px 6px rgba(0,0,0,0.06);
+    border: 1.5px solid #f7e7c6;
+    padding: 32px 0 24px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 101;
+    transition: box-shadow 0.3s, border 0.3s;
+}
+
+@media (max-width: 768px) {
+    .menu {
+        left: 10px;
+        width: 180px;
+        padding: 24px 0 20px 0;
+    }
+}
+
+
 
 /* 大屏幕优化 */
 @media (min-width: 1400px) {
@@ -1884,4 +2111,423 @@ nav[aria-label="Page navigation"] {
 }
 .next-page-btn:hover {
     background: #c68317;
+}
+
+/* 当屏幕宽度小于1000px时，显示横向滚动条 */
+@media (max-width: 999px) {
+    body {
+        overflow-x: auto;
+    }
+    
+    .header {
+        min-width: 1000px;
+    }
+    
+    .header-next {
+        min-width: 1000px;
+    }
+    
+    .content {
+        min-width: 1000px;
+    }
+    
+    .father {
+        min-width: 1000px;
+    }
+}
+
+
+.loading-container, .mobile-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+    min-height: 200px;
+}
+
+.loading-spinner {
+    text-align: center;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #e09620;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+.loading-spinner p {
+    color: #666;
+    font-size: 16px;
+    margin: 0;
+    font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+}
+
+/* 骨架屏加载效果 */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+.skeleton-post {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.skeleton-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-bottom: 15px;
+}
+
+.skeleton-line {
+    height: 16px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+}
+
+.skeleton-line.short {
+    width: 60%;
+}
+
+.skeleton-line.medium {
+    width: 80%;
+}
+
+.skeleton-line.long {
+    width: 100%;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 淡入淡出动画 */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+.fade-out {
+    animation: fadeOut 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+/* 手机版加载动画特殊样式 */
+.mobile-loading {
+    min-height: 150px;
+}
+
+.mobile-loading .spinner {
+    width: 40px;
+    height: 40px;
+    border-width: 3px;
+}
+
+.mobile-loading .loading-spinner p {
+    font-size: 14px;
+}
+/* 加载动画样式 */
+.loading-container, .mobile-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+    min-height: 200px;
+}
+
+.loading-spinner {
+    text-align: center;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #e09620;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+.loading-spinner p {
+    color: #666;
+    font-size: 16px;
+    margin: 0;
+    font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+}
+
+/* 骨架屏加载效果 */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+.skeleton-post {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.skeleton-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-bottom: 15px;
+}
+
+.skeleton-line {
+    height: 16px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+}
+
+.skeleton-line.short {
+    width: 60%;
+}
+
+.skeleton-line.medium {
+    width: 80%;
+}
+
+.skeleton-line.long {
+    width: 100%;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 淡入淡出动画 */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+.fade-out {
+    animation: fadeOut 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+/* 手机版加载动画特殊样式 */
+.mobile-loading {
+    min-height: 150px;
+}
+
+.mobile-loading .spinner {
+    width: 40px;
+    height: 40px;
+    border-width: 3px;
+}
+
+.mobile-loading .loading-spinner p {
+    font-size: 14px;
+}
+
+/* 页面初始加载动画样式 */
+.page-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    opacity: 1;
+    transition: opacity 0.8s ease-out;
+}
+
+.page-loading-overlay.fade-out {
+    opacity: 0;
+}
+
+.page-loading-overlay.hidden {
+    display: none;
+}
+
+.page-loading-content {
+    text-align: center;
+    color: white;
+}
+
+.page-loading-logo {
+    margin-bottom: 30px;
+    animation: logoFloat 2s ease-in-out infinite;
+}
+
+.loading-logo-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    box-shadow: 0 0 30px rgba(224, 150, 32, 0.6);
+}
+
+.page-loading-spinner {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 30px;
+}
+
+.loading-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 3px solid transparent;
+    border-top: 3px solid #e09620;
+    border-radius: 50%;
+    animation: spin 1.5s linear infinite;
+}
+
+.loading-ring:nth-child(2) {
+    width: 80%;
+    height: 80%;
+    top: 10%;
+    left: 10%;
+    border-top-color: #ffd9aa;
+    animation-delay: 0.5s;
+    animation-duration: 1.2s;
+}
+
+.loading-ring:nth-child(3) {
+    width: 60%;
+    height: 60%;
+    top: 20%;
+    left: 20%;
+    border-top-color: #f6e3d8;
+    animation-delay: 1s;
+    animation-duration: 0.9s;
+}
+
+.page-loading-text h2 {
+    font-size: 28px;
+    margin: 0 0 15px 0;
+    font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+    color: #e09620;
+    text-shadow: 0 0 20px rgba(224, 150, 32, 0.5);
+    animation: textGlow 2s ease-in-out infinite alternate;
+}
+
+.page-loading-text p {
+    font-size: 16px;
+    margin: 0;
+    color: #cccccc;
+    font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+    opacity: 0.8;
+}
+
+/* 动画关键帧 */
+@keyframes logoFloat {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes textGlow {
+    0% {
+        text-shadow: 0 0 20px rgba(224, 150, 32, 0.5);
+    }
+    100% {
+        text-shadow: 0 0 30px rgba(224, 150, 32, 0.8), 0 0 40px rgba(224, 150, 32, 0.4);
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .loading-logo-img {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .page-loading-spinner {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .page-loading-text h2 {
+        font-size: 24px;
+    }
+    
+    .page-loading-text p {
+        font-size: 14px;
+    }
 }

@@ -10,7 +10,12 @@
   },
   "author": "fyk",
   "license": "ISC",
-  "keywords": ["pet", "diary", "social", "blog"],
+  "keywords": [
+    "pet",
+    "diary",
+    "social",
+    "blog"
+  ],
   "description": "小柴日记 - 宠物社交博客平台",
   "engines": {
     "node": ">=14.0.0",
@@ -22,6 +27,8 @@
     "bcrypt": "^5.1.1",
     "bootstrap": "^5.3.5",
     "bootstrap-icons": "^1.11.3",
+    "clean-css": "^5.3.3",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
@@ -29,7 +36,9 @@
     "multer": "^2.0.0",
     "mysql": "^2.18.1",
     "passport": "^0.7.0",
-    "passport-jwt": "^4.0.1"
+    "passport-jwt": "^4.0.1",
+    "socket.io": "^4.8.1",
+    "uglify-js": "^3.19.3"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

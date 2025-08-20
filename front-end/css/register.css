@@ -5,6 +5,8 @@ html, body {
     background: linear-gradient(145deg, #fdf6f0, #ffe5d0);
     font-family: "Noto Sans SC", "PingFang SC", sans-serif;
     min-height: 100vh;
+    min-width: 800px; /* 设置最小宽度 */
+    overflow-x: auto; /* 当宽度不足时显示横向滚动条 */
 }
 
 body::after {
@@ -29,6 +31,7 @@ body::after {
     justify-content: center;
     align-items: center;
     z-index: 100;
+    min-width: 800px; /* 设置最小宽度 */
 }
 
 .header-next {
@@ -37,6 +40,7 @@ body::after {
     display: flex;
     align-items: center;
     padding: 0;
+    min-width: 800px; /* 设置最小宽度 */
 }
 
 .header {
@@ -172,4 +176,162 @@ body::after {
     margin-bottom: 4px;
     display: block;
     font-weight: 500;
+}
+
+/* 响应式设计 */
+@media (max-width: 1400px) {
+    .header-next {
+        width: 100%;
+        max-width: 1200px;
+        padding: 0 20px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .header-next {
+        padding: 0 15px;
+    }
+    
+    .square {
+        width: 350px;
+        padding: 35px;
+    }
+}
+
+@media (max-width: 992px) {
+    .header-next {
+        padding: 0 10px;
+    }
+    
+    .square {
+        width: 320px;
+        padding: 30px;
+    }
+    
+    .square h3 {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        height: 70px;
+    }
+    
+    .header-next {
+        padding: 0 10px;
+        justify-content: space-between;
+    }
+    
+    .header .logo {
+        width: 60px;
+        height: 60px;
+        margin-left: 0;
+    }
+    
+    .header .title {
+        height: 100px;
+        margin-left: 10px;
+    }
+    
+    .login {
+        font-size: 12px;
+    }
+    
+    .square {
+        width: 300px;
+        padding: 25px;
+    }
+    
+    .square h3 {
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+    
+    .square input[type="text"],
+    .square input[type="password"],
+    .square input[type="tel"] {
+        font-size: 14px;
+        padding: 8px 10px;
+    }
+    
+    .square button,
+    .square input[type="submit"] {
+        font-size: 14px;
+        padding: 8px 0;
+    }
+    
+    .alert {
+        width: 300px;
+    }
+}
+
+@media (max-width: 576px) {
+    .header {
+        height: 60px;
+    }
+    
+    .header-next {
+        padding: 0 5px;
+    }
+    
+    .header .logo {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .header .title {
+        height: 80px;
+        margin-left: 5px;
+    }
+    
+    .login {
+        font-size: 11px;
+    }
+    
+    .square {
+        width: 280px;
+        padding: 20px;
+    }
+    
+    .square h3 {
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+    
+    .square input[type="text"],
+    .square input[type="password"],
+    .square input[type="tel"] {
+        font-size: 13px;
+        padding: 6px 8px;
+    }
+    
+    .square button,
+    .square input[type="submit"] {
+        font-size: 13px;
+        padding: 6px 0;
+    }
+    
+    .alert {
+        width: 280px;
+    }
+}
+
+/* 当屏幕宽度小于800px时，显示横向滚动条 */
+@media (max-width: 799px) {
+    body {
+        overflow-x: auto;
+    }
+    
+    .header-container {
+        min-width: 800px;
+    }
+    
+    .header-next {
+        min-width: 800px;
+    }
+    
+    .square {
+        min-width: 350px;
+    }
 }

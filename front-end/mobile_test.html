@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手机端响应式测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(145deg, #fdf6f0, #ffe5d0);
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(198,131,23,0.15);
+        }
+        
+        .test-title {
+            text-align: center;
+            color: #c68317;
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #f7e7c6;
+            border-radius: 12px;
+            background: #fffdf9;
+        }
+        
+        .test-section h3 {
+            color: #c68317;
+            margin-top: 0;
+        }
+        
+        .test-button {
+            background: linear-gradient(145deg, #ffb347, #ffcc33);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(255, 180, 70, 0.2);
+            transition: all 0.3s;
+        }
+        
+        .test-button:hover {
+            background: linear-gradient(145deg, #ffaa33, #ffd666);
+            box-shadow: 0 6px 20px rgba(255, 180, 70, 0.25);
+            transform: translateY(-1px);
+        }
+        
+        .mobile-preview {
+            border: 2px solid #c68317;
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #fffdf9;
+        }
+        
+        .mobile-preview h4 {
+            color: #c68317;
+            margin-top: 0;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .responsive-test {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .test-item {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px;
+            border: 1px solid #e6cfa4;
+            border-radius: 8px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="test-title">手机端响应式修复测试</h1>
+        
+        <div class="test-section">
+            <h3>修复内容</h3>
+            <div class="status success">
+                ✅ 登录页面：移除了最小宽度限制，添加了完整的移动端响应式设计
+            </div>
+            <div class="status success">
+                ✅ 发布按钮：在手机端增加了尺寸、添加了渐变背景和阴影效果，使其更明显
+            </div>
+            <div class="status info">
+                ℹ️ 测试方法：请在不同屏幕尺寸下查看页面效果
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>手机端预览</h3>
+            <div class="mobile-preview">
+                <h4>登录页面修复</h4>
+                <ul>
+                    <li>移除了 min-width: 800px 限制</li>
+                    <li>添加了完整的移动端媒体查询</li>
+                    <li>优化了表单元素在小屏幕上的显示</li>
+                    <li>改善了按钮和输入框的触摸体验</li>
+                </ul>
+            </div>
+            
+            <div class="mobile-preview">
+                <h4>发布按钮优化</h4>
+                <ul>
+                    <li>手机端按钮尺寸从 50px 增加到 60-65px</li>
+                    <li>添加了渐变背景和白色边框</li>
+                    <li>增强了阴影效果和悬停动画</li>
+                    <li>提高了 z-index 确保按钮在最上层</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>响应式测试</h3>
+            <div class="responsive-test">
+                <div class="test-item">
+                    <h4>大屏幕 (>1400px)</h4>
+                    <p>完整布局，侧边栏显示</p>
+                </div>
+                <div class="test-item">
+                    <h4>中等屏幕 (768px-1400px)</h4>
+                    <p>侧边栏隐藏，内容区域调整</p>
+                </div>
+                <div class="test-item">
+                    <h4>手机端 (<768px)</h4>
+                    <p>垂直布局，发布按钮优化</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>测试按钮</h3>
+            <button class="test-button" onclick="testMobileFeatures()">测试移动端功能</button>
+            <button class="test-button" onclick="checkViewport()">检查视口尺寸</button>
+        </div>
+        
+        <div id="test-results"></div>
+    </div>
+    
+    <script>
+        function testMobileFeatures() {
+            const results = document.getElementById('test-results');
+            const viewport = window.innerWidth;
+            
+            let status = '';
+            if (viewport < 768) {
+                status = '手机端模式 - 发布按钮应该更大更明显';
+            } else if (viewport < 1400) {
+                status = '平板模式 - 布局已优化';
+            } else {
+                status = '桌面模式 - 完整功能';
+            }
+            
+            results.innerHTML = `
+                <div class="test-section">
+                    <h3>测试结果</h3>
+                    <div class="status info">
+                        当前视口宽度: ${viewport}px<br>
+                        状态: ${status}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function checkViewport() {
+            const results = document.getElementById('test-results');
+            const viewport = window.innerWidth;
+            const height = window.innerHeight;
+            
+            results.innerHTML = `
+                <div class="test-section">
+                    <h3>视口信息</h3>
+                    <div class="status info">
+                        宽度: ${viewport}px<br>
+                        高度: ${height}px<br>
+                        设备像素比: ${window.devicePixelRatio}<br>
+                        用户代理: ${navigator.userAgent}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 页面加载时自动检查
+        window.addEventListener('load', function() {
+            checkViewport();
+        });
+    </script>
+</body>
+</html> 

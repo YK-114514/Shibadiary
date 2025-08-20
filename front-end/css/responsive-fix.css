@@ -1,0 +1,398 @@
+/* 响应式设计修复 - 解决页面缩小后的美观问题 */
+
+/* 基础响应式设置 */
+@media (max-width: 1400px) {
+    .header-next {
+        width: 100%;
+        max-width: 1200px;
+        padding: 0 20px;
+    }
+    
+    .topics {
+        margin-left: 200px;
+        gap: 30px;
+    }
+    
+    .login-header {
+        margin-left: 200px;
+    }
+    
+    .content {
+        margin-left: 260px;
+        margin-right: 20px;
+        max-width: calc(100% - 280px);
+    }
+}
+
+@media (max-width: 1200px) {
+    .header-next {
+        padding: 0 15px;
+    }
+    
+    .topics {
+        margin-left: 150px;
+        gap: 25px;
+    }
+    
+    .login-header {
+        margin-left: 150px;
+    }
+    
+    .right-sidebar {
+        display: none;
+    }
+    
+    .content {
+        margin-left: 240px;
+        margin-right: 20px;
+        max-width: calc(100% - 260px);
+        padding: 15px;
+    }
+    
+    .content .content-next .mulu {
+        margin: 30px;
+        max-width: 100%;
+    }
+    
+    .content .content-next .mulu .list .sentences {
+        width: 100%;
+        max-width: 500px;
+    }
+}
+
+@media (max-width: 992px) {
+    .header-next {
+        padding: 0 10px;
+    }
+    
+    .topics {
+        margin-left: 100px;
+        gap: 20px;
+    }
+    
+    .login-header {
+        margin-left: 100px;
+    }
+    
+    .topics li a {
+        font-size: 14px;
+        padding: 6px 12px;
+    }
+    
+    .login-header a {
+        font-size: 13px;
+        padding: 5px 12px;
+    }
+    
+    .content {
+        margin-left: 220px;
+        margin-right: 15px;
+        max-width: calc(100% - 235px);
+        padding: 12px;
+    }
+    
+    .content .content-next .mulu {
+        margin: 20px;
+    }
+    
+    .content .content-next .mulu .list .sentences {
+        max-width: 400px;
+    }
+    
+    .content .content-next .mulu .list .divide_row .uname {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        height: 70px;
+    }
+    
+    .header-next {
+        padding: 0 10px;
+        justify-content: space-between;
+        position: relative;
+    }
+    
+    .logo {
+        width: 60px;
+        height: 60px;
+        margin-left: 0;
+        flex-shrink: 0;
+    }
+    
+    .title {
+        height: 100px;
+        margin-left: 10px;
+        flex-shrink: 0;
+    }
+    
+    .topics {
+        margin-left: 0;
+        gap: 15px;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+    }
+    
+    .topics li a {
+        font-size: 13px;
+        padding: 5px 10px;
+        white-space: nowrap;
+    }
+    
+    .login-header {
+        margin-left: 0;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+    
+    .login-header a {
+        font-size: 12px;
+        padding: 4px 10px;
+        white-space: nowrap;
+    }
+    
+    .content {
+        margin-left: 20px;
+        margin-right: 20px;
+        max-width: calc(100% - 40px);
+        padding: 15px;
+        margin-top: 80px;
+    }
+    
+    .content .content-next .mulu {
+        margin: 15px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .content .content-next .mulu .avatar {
+        width: 40px;
+        height: 40px;
+        margin-right: 15px;
+        margin-bottom: 10px;
+    }
+    
+    .content .content-next .mulu .list .sentences {
+        width: 100%;
+        max-width: none;
+        margin-top: 20px;
+    }
+    
+    .content .content-next .mulu .list .divide_row .uname {
+        font-size: 15px;
+    }
+    
+    .content .content-next .mulu .list .divide_row .delete {
+        right: 10px;
+    }
+    
+    .content .content-next .mulu .list .divide_row .delete img {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .menu {
+        left: 10px;
+        width: 180px;
+        padding: 24px 0 20px 0;
+    }
+    
+    .sidebar-card {
+        padding: 16px 12px 12px 12px;
+    }
+    
+    .sidebar-title {
+        font-size: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .sidebar-list {
+        max-height: 300px;
+        min-height: 150px;
+    }
+    
+    .sidebar-list li {
+        margin-bottom: 12px;
+        gap: 8px;
+    }
+    
+    .sidebar-avatar {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .sidebar-name {
+        font-size: 13px;
+        max-width: 120px;
+    }
+    
+    .adding {
+        width: 50px;
+        height: 50px;
+        left: 20px;
+        bottom: 20px;
+    }
+    
+    .adding:hover {
+        width: 55px;
+        height: 55px;
+    }
+    
+    .search-bar-demo {
+        width: 100%;
+        margin-left: 0;
+        padding: 8px 15px;
+    }
+    
+    .search-input-demo {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+    
+    .search-btn-demo,
+    .clear-btn-demo {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .adding_content {
+        width: 90%;
+        max-height: 85vh;
+        padding: 24px 20px 20px 20px;
+    }
+    
+    .adding_content .title {
+        font-size: 20px;
+        margin-bottom: 6px;
+    }
+    
+    .adding_content .out {
+        right: 15px;
+        top: 15px;
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 576px) {
+    .header {
+        height: 60px;
+    }
+    
+    .header-next {
+        padding: 0 5px;
+    }
+    
+    .logo {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .title {
+        height: 80px;
+        margin-left: 5px;
+    }
+    
+    .topics {
+        gap: 10px;
+    }
+    
+    .topics li a {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+    
+    .login-header {
+        gap: 8px;
+    }
+    
+    .login-header a {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+    
+    .content {
+        margin-left: 10px;
+        margin-right: 10px;
+        max-width: calc(100% - 20px);
+        padding: 10px;
+        margin-top: 70px;
+    }
+    
+    .content .content-next .mulu {
+        margin: 10px;
+    }
+    
+    .content .content-next .mulu .avatar {
+        width: 35px;
+        height: 35px;
+        margin-right: 12px;
+    }
+    
+    .content .content-next .mulu .list .sentences {
+        margin-top: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .content .content-next .mulu .list .divide_row .uname {
+        font-size: 14px;
+    }
+    
+    .content .content-next .mulu .list .divide_row .delete {
+        right: 5px;
+    }
+    
+    .content .content-next .mulu .list .divide_row .delete img {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .menu {
+        left: 5px;
+        width: 160px;
+        padding: 20px 0 16px 0;
+    }
+}
+
+/* 大屏幕优化 */
+@media (min-width: 1400px) {
+    .right-sidebar {
+        width: 280px;
+    }
+    
+    .sidebar-list {
+        max-height: calc(100vh - 300px);
+    }
+}
+
+/* 确保菜单在所有屏幕尺寸下都保持固定位置 */
+.menu {
+    position: fixed;
+    top: 105px;
+    left: 20px;
+    width: 200px;
+    min-height: 300px;
+    background: linear-gradient(145deg, #fff9f0, #fff5e6);
+    border-radius: 18px;
+    box-shadow: 0 6px 32px rgba(198,131,23,0.10), 0 1.5px 6px rgba(0,0,0,0.06);
+    border: 1.5px solid #f7e7c6;
+    padding: 32px 0 24px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 101;
+    transition: box-shadow 0.3s, border 0.3s;
+}
+
+/* 确保内容区域在所有屏幕尺寸下都有合适的边距 */
+.content {
+    margin-left: 240px;
+    margin-right: 320px;
+    margin-top: 100px;
+    padding: 20px;
+    min-height: calc(100vh - 100px);
+    max-width: 1200px;
+} 

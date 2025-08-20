@@ -161,13 +161,19 @@ router.post('/login',(req,res)=>{
             //db.query('select password from user_infom where email=?')
 
             bcrypt.compare(password, results[0].password,(err,isMatch)=>{
-                if(err) throw err;
+                if(err) {
+                    console.log('密码比较失败:', err.message)
+                    return res.status(500).json({ error: '密码比较失败' })
+                }
                 if(isMatch){
                     //token+规则定制
                     db.query('select * from user where phone=?',[phone],(err,resultsjwt)=>{
                         const rule = {id_user:resultsjwt[0].id_user,name:resultsjwt[0].name,avatar:resultsjwt[0].avatar}
                     jwt.sign(rule,'secret',{expiresIn:3600},(err,token)=>{
-                        if(err) throw err;
+                        if(err) {
+                            console.log('JWT签名失败:', err.message)
+                            return res.status(500).json({ error: 'JWT签名失败' })
+                        }
                         //console.log('token',token)
                         res.json({
                             success:true,

@@ -14,7 +14,10 @@ router.get('/personal', passport.authenticate('jwt', {session: false}), (req, re
     
     // 获取用户帖子总数
     db.query('SELECT COUNT(*) as total FROM post_infom WHERE id_user = ?', [req.user.id_user], (err, countResult) => {
-        if (err) throw err
+        if (err) {
+            console.log('获取用户帖子总数失败:', err.message)
+            return res.status(500).json({ error: '获取用户帖子总数失败' })
+        }
         
         const total = countResult[0].total;
         const totalPages = Math.ceil(total / limit);
@@ -24,17 +27,26 @@ router.get('/personal', passport.authenticate('jwt', {session: false}), (req, re
         // 获取用户帖子（分页）
         db.query('SELECT p.*, u.name, u.avatar FROM post_infom p LEFT JOIN user u ON p.id_user = u.id_user WHERE p.id_user = ? ORDER BY p.time DESC LIMIT ? OFFSET ?', 
             [req.user.id_user, limit, offset], (err, results) => {
-            if (err) throw err
+            if (err) {
+                console.log('获取用户帖子失败:', err.message)
+                return res.status(500).json({ error: '获取用户帖子失败' })
+            }
 
             console.log('查询到的帖子数量:', results.length);
 
             // 获取关注数
             db.query('SELECT COUNT(*) as following_count FROM follows WHERE follower_id = ?', [req.user.id_user], (err, followingResults) => {
-                if (err) throw err
+                if (err) {
+                    console.log('获取关注数失败:', err.message)
+                    return res.status(500).json({ error: '获取关注数失败' })
+                }
 
                 // 获取粉丝数
                 db.query('SELECT COUNT(*) as followers_count FROM follows WHERE following_id = ?', [req.user.id_user], (err, followersResults) => {
-                    if (err) throw err
+                    if (err) {
+                        console.log('获取粉丝数失败:', err.message)
+                        return res.status(500).json({ error: '获取粉丝数失败' })
+                    }
 
                     // 将关注数和粉丝数添加到结果中
                     const response = {

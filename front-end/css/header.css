@@ -168,3 +168,144 @@
     margin-left: 5px;
     vertical-align: middle;
 }
+
+/* 添加响应式设计 */
+@media (max-width: 1400px) {
+    .header-next {
+        width: 100%;
+        max-width: 1200px;
+        padding: 0 20px;
+    }
+    
+    .topics {
+        margin-left: 200px;
+        gap: 30px;
+    }
+    
+    .login-header {
+        margin-left: 200px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .header-next {
+        padding: 0 15px;
+    }
+    
+    .topics {
+        margin-left: 150px;
+        gap: 25px;
+    }
+    
+    .login-header {
+        margin-left: 150px;
+    }
+}
+
+@media (max-width: 992px) {
+    .header-next {
+        padding: 0 10px;
+    }
+    
+    .topics {
+        margin-left: 100px;
+        gap: 20px;
+    }
+    
+    .login-header {
+        margin-left: 100px;
+    }
+    
+    .topics li a {
+        font-size: 14px;
+        padding: 6px 12px;
+    }
+    
+    .login-header a {
+        font-size: 13px;
+        padding: 5px 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        height: 70px;
+    }
+    
+    .header-next {
+        padding: 0 10px;
+        justify-content: space-between;
+    }
+    
+    .logo {
+        width: 60px;
+        height: 60px;
+        margin-left: 0;
+    }
+    
+    .title {
+        height: 100px;
+        margin-left: 10px;
+    }
+    
+    .topics {
+        margin-left: 0;
+        gap: 15px;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    
+    .topics li a {
+        font-size: 13px;
+        padding: 5px 10px;
+    }
+    
+    .login-header {
+        margin-left: 0;
+        gap: 10px;
+    }
+    
+    .login-header a {
+        font-size: 12px;
+        padding: 4px 10px;
+    }
+}
+
+@media (max-width: 576px) {
+    .header {
+        height: 60px;
+    }
+    
+    .header-next {
+        padding: 0 5px;
+    }
+    
+    .logo {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .title {
+        height: 80px;
+        margin-left: 5px;
+    }
+    
+    .topics {
+        gap: 10px;
+    }
+    
+    .topics li a {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+    
+    .login-header {
+        gap: 8px;
+    }
+    
+    .login-header a {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+}

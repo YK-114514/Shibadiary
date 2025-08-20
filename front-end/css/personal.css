@@ -3,7 +3,8 @@ body {
     padding: 0;
     background: linear-gradient(145deg, #f6e3d8, #ffd9aa);
     font-family: Arial, sans-serif;
-    
+    min-width: 1000px; /* 设置最小宽度 */
+    overflow-x: auto; /* 当宽度不足时显示横向滚动条 */
 }
 
 .header{
@@ -17,6 +18,7 @@ body {
     justify-content: center;
     align-items: center;
     z-index:100;
+    min-width: 1000px; /* 设置最小宽度 */
 }
 
 .header-next{
@@ -24,8 +26,8 @@ body {
     height: 100%;
     display: flex;
     align-items: center;
-    
-    padding: 0 ;
+    padding: 0;
+    min-width: 1000px; /* 设置最小宽度 */
 }
 
 
@@ -429,9 +431,111 @@ nav[aria-label="Page navigation"] {
 }
 
 /* 响应式设计 */
+@media (max-width: 1400px) {
+    .header-next {
+        width: 100%;
+        max-width: 1200px;
+        padding: 0 20px;
+    }
+    
+    .setting {
+        margin-left: 700px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .header-next {
+        padding: 0 15px;
+    }
+    
+    .setting {
+        margin-left: 500px;
+    }
+    
+    .middle {
+        gap: 60px;
+    }
+}
+
+@media (max-width: 992px) {
+    .header-next {
+        padding: 0 10px;
+    }
+    
+    .setting {
+        margin-left: 300px;
+    }
+    
+    .middle {
+        gap: 40px;
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .middle .profile {
+        width: 180px;
+        height: 180px;
+        margin-left: 0;
+    }
+    
+    .middle .name {
+        font-size: 2rem;
+    }
+    
+    .middle .stats {
+        font-size: 1rem;
+    }
+}
+
 @media (max-width: 768px) {
+    .header {
+        height: 70px;
+    }
+    
+    .header-next {
+        padding: 0 10px;
+        justify-content: space-between;
+    }
+    
+    .logo {
+        width: 60px;
+        height: 60px;
+        margin-left: 0;
+    }
+    
+    .title {
+        height: 100px;
+        margin-left: 10px;
+    }
+    
+    .setting {
+        margin-left: 0;
+        font-size: 12px;
+    }
+    
+    .middle {
+        gap: 30px;
+        padding: 20px 0;
+        margin-top: 80px;
+        margin-bottom: 60px;
+    }
+    
+    .middle .profile {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .middle .name {
+        font-size: 1.8rem;
+    }
+    
+    .middle .stats {
+        font-size: 0.9rem;
+    }
+    
     .content {
         width: 95%;
+        margin: 100px 20px 20px 20px;
     }
     
     .mulu-top {
@@ -448,6 +552,66 @@ nav[aria-label="Page navigation"] {
         padding: 6px 12px;
         font-size: 13px;
         margin: 0 2px;
+    }
+}
+
+@media (max-width: 576px) {
+    .header {
+        height: 60px;
+    }
+    
+    .header-next {
+        padding: 0 5px;
+    }
+    
+    .logo {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .title {
+        height: 80px;
+        margin-left: 5px;
+    }
+    
+    .setting {
+        font-size: 11px;
+    }
+    
+    .middle {
+        gap: 20px;
+        padding: 15px 0;
+        margin-top: 70px;
+        margin-bottom: 40px;
+    }
+    
+    .middle .profile {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .middle .name {
+        font-size: 1.5rem;
+    }
+    
+    .middle .stats {
+        font-size: 0.8rem;
+    }
+    
+    .content {
+        width: 100%;
+        margin: 80px 10px 10px 10px;
+    }
+    
+    .mulu-top {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .pagination .page-link {
+        padding: 5px 10px;
+        font-size: 12px;
+        margin: 0 1px;
     }
 }
 
@@ -556,4 +720,27 @@ nav[aria-label="Page navigation"] {
 
 .content::-webkit-scrollbar-thumb:hover {
     background: rgba(198, 131, 23, 0.5);
+}
+
+/* 当屏幕宽度小于1000px时，显示横向滚动条 */
+@media (max-width: 999px) {
+    body {
+        overflow-x: auto;
+    }
+    
+    .header {
+        min-width: 1000px;
+    }
+    
+    .header-next {
+        min-width: 1000px;
+    }
+    
+    .content {
+        min-width: 1000px;
+    }
+    
+    .middle {
+        min-width: 1000px;
+    }
 }
