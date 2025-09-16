@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>未登录状态测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="http.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .login-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        .test-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .logged-in {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .logged-out {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>未登录状态测试页面</h1>
+    
+    <div class="info">
+        <strong>测试说明：</strong>
+        <ul>
+            <li>这个页面用来测试未登录状态下是否还会显示上一个用户的数据</li>
+            <li>点击"清除所有数据"来模拟完全未登录状态</li>
+            <li>然后访问其他页面，检查是否还有残留数据</li>
+        </ul>
+    </div>
+    
+    <div class="warning">
+        <strong>问题现象：</strong>
+        <ul>
+            <li>未登录状态下还显示关注列表</li>
+            <li>未登录状态下还显示点赞状态</li>
+            <li>未登录状态下还显示收藏状态</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h3>当前状态</h3>
+        <div id="status" class="status"></div>
+        <button class="login-btn" onclick="simulateLogin()">模拟登录</button>
+        <button class="logout-btn" onclick="clearAllData()">清除所有数据</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>数据检查</h3>
+        <div id="dataCheck"></div>
+        <button class="test-btn" onclick="checkData()">检查当前数据</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>页面跳转测试</h3>
+        <button class="test-btn" onclick="testIndexPage()">测试首页</button>
+        <button class="test-btn" onclick="testPersonalPage()">测试Personal页面</button>
+        <button class="test-btn" onclick="testSettingPage()">测试Setting页面</button>
+        <button class="test-btn" onclick="testMessagePage()">测试Message页面</button>
+    </div>
+
+    <script>
+        function updateStatus() {
+            const statusDiv = document.getElementById('status');
+            const isLoggedIn = !!localStorage.getItem('eleToken');
+            
+            if (isLoggedIn) {
+                statusDiv.className = 'status logged-in';
+                statusDiv.textContent = '已登录状态';
+            } else {
+                statusDiv.className = 'status logged-out';
+                statusDiv.textContent = '未登录状态';
+            }
+        }
+        
+        function checkData() {
+            const dataCheckDiv = document.getElementById('dataCheck');
+            const token = localStorage.getItem('eleToken');
+            const userData = localStorage.getItem('user_data');
+            const sessionUserData = sessionStorage.getItem('user_data');
+            
+            let html = '<h4>当前存储的数据：</h4>';
+            html += `<p><strong>Token:</strong> ${token ? '存在' : '不存在'}</p>`;
+            html += `<p><strong>localStorage user_data:</strong> ${userData ? '存在' : '不存在'}</p>`;
+            html += `<p><strong>sessionStorage user_data:</strong> ${sessionUserData ? '存在' : '不存在'}</p>`;
+            
+            if (userData) {
+                try {
+                    const parsed = JSON.parse(userData);
+                    html += `<p><strong>用户ID:</strong> ${parsed.id_user || '无'}</p>`;
+                    html += `<p><strong>用户名:</strong> ${parsed.name || '无'}</p>`;
+                } catch (e) {
+                    html += `<p><strong>用户数据格式错误:</strong> ${e.message}</p>`;
+                }
+            }
+            
+            dataCheckDiv.innerHTML = html;
+        }
+        
+        function simulateLogin() {
+            localStorage.setItem('eleToken', 'fake-token-' + Date.now());
+            localStorage.setItem('user_data', JSON.stringify({
+                id_user: 1,
+                name: '测试用户',
+                avatar: '/images/default_avatar.jpg'
+            }));
+            
+            // 调用登录成功函数
+            if (window.loginSuccess) {
+                window.loginSuccess();
+            }
+            
+            updateStatus();
+            checkData();
+            alert('已模拟登录');
+        }
+        
+        function clearAllData() {
+            // 清除所有可能的数据
+            localStorage.removeItem('eleToken');
+            localStorage.removeItem('user_data');
+            sessionStorage.removeItem('user_data');
+            
+            // 清除其他可能的数据
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.includes('user') || key.includes('token') || key.includes('auth')) {
+                    keysToRemove.push(key);
+                }
+            }
+            
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            
+            updateStatus();
+            checkData();
+            alert('已清除所有数据');
+        }
+        
+        function testIndexPage() {
+            window.open('/index', '_blank');
+        }
+        
+        function testPersonalPage() {
+            window.open('/personal', '_blank');
+        }
+        
+        function testSettingPage() {
+            window.open('/setting', '_blank');
+        }
+        
+        function testMessagePage() {
+            window.open('/message', '_blank');
+        }
+        
+        // 页面加载时更新状态
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus();
+            checkData();
+        });
+    </script>
+</body>
+</html> 

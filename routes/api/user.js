@@ -12,7 +12,7 @@ const path = require('path')
 // 设置头像上传目录和文件名
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, path.join(__dirname, '../../front-end/images/avatars'))
+        cb(null, path.join(__dirname, '../../front-end//images/avatars'))
     },
     filename: function (req, file, cb) {
         // 文件名：用户id+时间戳+后缀
@@ -102,7 +102,7 @@ router.post('/register',(req,res)=>{
                     const newUser = {
                         name:req.body.name,
                         phone:req.body.phone,
-                        avatar:'/images/default_avatar.jpg',
+                        avatar:'//images/default_avatar.jpg',
                         password:req.body.password
                     }
                      //对密码进行加密+insert新用户
@@ -225,7 +225,7 @@ router.post('/avatar', requireAuth, upload.single('avatar'), (req, res) => {
     console.log('上传的文件信息:', req.file)
     
     // 头像URL（静态资源路径）
-    const avatarUrl = `/images/avatars/${req.file.filename}`
+    const avatarUrl = `//images/avatars/${req.file.filename}`
     console.log('头像URL:', avatarUrl)
     
     // 先查询用户当前信息

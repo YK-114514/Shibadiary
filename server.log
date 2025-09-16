@@ -1,0 +1,59 @@
+nohup: ignoring input
+✅ posts路由模块加载
+[缓存中间件] 优化的缓存中间件已初始化
+服务器运行在端口 3000
+WebSocket 服务器已启动
+监听地址: 0.0.0.0:3000
+[DB] 新数据库连接已建立
+[DB] 数据库连接正常
+[DB] 数据库连接正常
+文件发送错误: Error: Request aborted
+    at onaborted (/root/小柴日记项目/node_modules/express/lib/response.js:922:15)
+    at Immediate._onImmediate (/root/小柴日记项目/node_modules/express/lib/response.js:964:9)
+    at process.processImmediate (node:internal/timers:476:21) {
+  code: 'ECONNABORTED'
+}
+尝试访问的文件路径: /root/小柴日记项目/front-end/views/index.html
+[DB] 数据库连接正常
+[DB] 数据库连接正常
+[DB] 数据库连接正常
+[DB] 数据库连接正常
+[DB] 数据库连接正常
+[DB] 数据库连接正常
+[DB] 数据库连接正常
+[DB] 数据库连接正常
+文件发送错误: Error: Request aborted
+    at onaborted (/root/小柴日记项目/node_modules/express/lib/response.js:922:15)
+    at Immediate._onImmediate (/root/小柴日记项目/node_modules/express/lib/response.js:964:9)
+    at process.processImmediate (node:internal/timers:476:21) {
+  code: 'ECONNABORTED'
+}
+尝试访问的文件路径: /root/小柴日记项目/front-end/views/index.html
+[DB] 数据库连接正常
+[DB] 数据库连接正常
+[DB] 数据库连接正常
+[DB] 数据库连接正常
+文件发送错误: Error: Request aborted
+    at onaborted (/root/小柴日记项目/node_modules/express/lib/response.js:922:15)
+    at Immediate._onImmediate (/root/小柴日记项目/node_modules/express/lib/response.js:964:9)
+    at process.processImmediate (node:internal/timers:476:21) {
+  code: 'ECONNABORTED'
+}
+尝试访问的文件路径: /root/小柴日记项目/front-end/views/index.html
+[DB] 数据库连接正常
+文件发送错误: Error: Request aborted
+    at onaborted (/root/小柴日记项目/node_modules/express/lib/response.js:922:15)
+    at Immediate._onImmediate (/root/小柴日记项目/node_modules/express/lib/response.js:964:9)
+    at process.processImmediate (node:internal/timers:476:21) {
+  code: 'ECONNABORTED'
+}
+尝试访问的文件路径: /root/小柴日记项目/front-end/views/index.html
+文件发送错误: Error: Request aborted
+    at onaborted (/root/小柴日记项目/node_modules/express/lib/response.js:922:15)
+    at Immediate._onImmediate (/root/小柴日记项目/node_modules/express/lib/response.js:964:9)
+    at process.processImmediate (node:internal/timers:476:21) {
+  code: 'ECONNABORTED'
+}
+尝试访问的文件路径: /root/小柴日记项目/front-end/views/index.html
+[DB] 数据库连接正常
+[DB] 数据库连接正常

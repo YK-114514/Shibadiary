@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token失效刷新测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="http.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .login-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        .test-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .logged-in {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .logged-out {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Token失效刷新测试页面</h1>
+    
+    <div class="info">
+        <strong>测试说明：</strong>
+        <ul>
+            <li>点击"模拟登录"设置token</li>
+            <li>点击"模拟退出登录"会弹窗并刷新页面</li>
+            <li>点击"测试无效请求"会模拟401错误，弹窗并刷新页面</li>
+            <li>页面刷新后应该显示未登录状态</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h3>当前状态</h3>
+        <div id="status" class="status"></div>
+        <button class="login-btn" onclick="simulateLogin()">模拟登录</button>
+        <button class="logout-btn" onclick="simulateLogout()">模拟退出登录</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>API测试</h3>
+        <button class="test-btn" onclick="testValidRequest()">测试有效请求</button>
+        <button class="test-btn" onclick="testInvalidRequest()">测试无效请求（模拟401）</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>页面跳转测试</h3>
+        <button class="test-btn" onclick="testPersonalPage()">测试Personal页面跳转</button>
+        <button class="test-btn" onclick="testSettingPage()">测试Setting页面跳转</button>
+        <button class="test-btn" onclick="testMessagePage()">测试Message页面跳转</button>
+    </div>
+
+    <script>
+        function updateStatus() {
+            const statusDiv = document.getElementById('status');
+            const isLoggedIn = !!localStorage.getItem('eleToken');
+            
+            if (isLoggedIn) {
+                statusDiv.className = 'status logged-in';
+                statusDiv.textContent = '已登录状态';
+            } else {
+                statusDiv.className = 'status logged-out';
+                statusDiv.textContent = '未登录状态';
+            }
+        }
+        
+        function simulateLogin() {
+            localStorage.setItem('eleToken', 'fake-token-' + Date.now());
+            localStorage.setItem('user_data', JSON.stringify({
+                id_user: 1,
+                name: '测试用户',
+                avatar: '/images/default_avatar.jpg'
+            }));
+            
+            // 调用登录成功函数
+            if (window.loginSuccess) {
+                window.loginSuccess();
+            }
+            
+            updateStatus();
+            alert('已模拟登录');
+        }
+        
+        function simulateLogout() {
+            if (window.logout) {
+                window.logout();
+            } else {
+                localStorage.removeItem('eleToken');
+                localStorage.removeItem('user_data');
+                updateStatus();
+            }
+        }
+        
+        function testValidRequest() {
+            axios.get('/api/posts/index')
+                .then(response => {
+                    alert('请求成功');
+                })
+                .catch(error => {
+                    alert('请求失败: ' + error.message);
+                });
+        }
+        
+        function testInvalidRequest() {
+            // 模拟一个会返回401的请求
+            axios.get('/api/test-invalid-endpoint')
+                .then(response => {
+                    alert('请求成功');
+                })
+                .catch(error => {
+                    console.log('请求失败（预期行为）:', error.message);
+                });
+        }
+        
+        function testPersonalPage() {
+            window.open('/personal', '_blank');
+        }
+        
+        function testSettingPage() {
+            window.open('/setting', '_blank');
+        }
+        
+        function testMessagePage() {
+            window.open('/message', '_blank');
+        }
+        
+        // 页面加载时更新状态
+        document.addEventListener('DOMContentLoaded', updateStatus);
+        
+        // 监听页面刷新
+        window.addEventListener('beforeunload', function() {
+            console.log('页面即将刷新');
+        });
+        
+        // 页面加载完成后检查状态
+        window.addEventListener('load', function() {
+            console.log('页面加载完成，当前登录状态:', !!localStorage.getItem('eleToken'));
+            updateStatus();
+        });
+    </script>
+</body>
+</html> 

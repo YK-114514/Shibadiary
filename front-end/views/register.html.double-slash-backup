@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4KNWJP3BH3"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-4KNWJP3BH3');
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/register.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../http.js"></script>
+      <!-- 埋点工具函数 -->
+      <script>
+        // 埋点工具函数
+        window.trackEvent = function(eventName, eventData = {}) {
+            try {
+                // 构建埋点数据
+                const trackData = {
+                    event_name: eventName,
+                    user_id: 'anonymous',
+                    timestamp: new Date().toISOString(),
+                    page_url: window.location.href,
+                    user_agent: navigator.userAgent,
+                    ...eventData
+                };
+                
+                // 发送到后端埋点接口（如果有的话）
+                if (typeof axios !== 'undefined') {
+                    axios.post('/api/tracking/event', trackData).catch(err => {
+                        console.log('埋点发送失败:', err);
+                    });
+                }
+                
+                // 控制台输出（开发环境）
+                console.log('📊 埋点事件:', eventName, trackData);
+                
+            } catch (error) {
+                console.error('埋点发送失败:', error);
+            }
+        };
+        
+        // 页面加载埋点
+        document.addEventListener('DOMContentLoaded', function() {
+            trackEvent('page_view', {
+                page_title: document.title,
+                page_type: 'register'
+            });
+        });
+        </script>
+</head>
+<body>
+    <!--turn to login-->
+    <div class="header-container">
+        <div class="header-next">
+            <a href="/index" class="header">
+                <img loading="lazy" class="logo" src="//images/logo.png">
+                <img loading="lazy" class="title" src="//images/title.png">
+            </a>
+        </div>
+        <div class="login">
+            <text class="first">已有账号？</text>
+            <a href='/login' class="second">登录</a>
+        </div>
+    </div>
+     
+    <!--注册部分-->
+    <div class="square">
+        
+        <form class="row g-3 needs-validation" novalidate>
+            <div class="mb-3">
+              <label for="name" class="form-label" >用户名</label>
+              <input type="text" class="form-control" id="name" placeholder="请输入2-30字符的用户名" required>
+              
+            </div>
+            <div class="mb-3">
+                <label for="phone" class="form-label">手机号</label>
+                <input type="tel" class="form-control" id="phone" placeholder="请输入手机号" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">密码</label>
+                <input type="password" class="form-control" id="password" placeholder="请输入8-20字符的密码" required>
+            </div>
+            <div class="mb-3">
+                <label for="checkPassword" class="form-label">确认密码</label>
+                <input type="password" class="form-control" id="checkPassword" placeholder="请再次输入密码" required>
+            </div>
+            <button type="submit" class="btn btn-primary" >注册</button>
+          </form>
+    </div>
+
+   
+    
+    
+    </div>
+    <div class="alert alert-success" role="alert" style="display:none">
+        注册成功
+      </div>
+      <div class="alert alert-danger" role="alert" style="display:none">
+        注册失败，请重新注册
+      </div>
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            //检查用户名
+            const checkUser = document.getElementById('name');
+            const checkPhone = document.getElementById('phone');
+            const checkPass = document.getElementById('password');
+            const checkPass2 = document.getElementById('checkPassword');
+            const reg1 = /^1[3-9]\d{9}$/;
+            const reg2 = /^[a-zA-Z0-9-_~!@#$%^&*]{8,20}$/;
+
+            // 用户名验证
+            if (checkUser) {
+                checkUser.addEventListener('blur', () => {
+                    if (checkUser.value.trim().length < 2 || checkUser.value.trim().length > 30) {
+                        checkUser.classList.add('is-invalid');
+                        checkUser.classList.remove('is-valid');
+                    } else {
+                        checkUser.classList.add('is-valid');
+                        checkUser.classList.remove('is-invalid');
+                    }
+                });
+            }
+
+            // 手机号验证
+            if (checkPhone) {
+                checkPhone.addEventListener('blur', () => {
+                    if (!reg1.test(checkPhone.value)) {
+                        checkPhone.classList.add('is-invalid');
+                        checkPhone.classList.remove('is-valid');
+                    } else {
+                        checkPhone.classList.add('is-valid');
+                        checkPhone.classList.remove('is-invalid');
+                    }
+                });
+            }
+
+            // 密码验证
+            if (checkPass) {
+                checkPass.addEventListener('blur', () => {
+                    if (!reg2.test(checkPass.value)) {
+                        checkPass.classList.add('is-invalid');
+                        checkPass.classList.remove('is-valid');
+                    } else {
+                        checkPass.classList.add('is-valid');
+                        checkPass.classList.remove('is-invalid');
+                    }
+                });
+            }
+
+            // 确认密码验证
+            if (checkPass2) {
+                checkPass2.addEventListener('blur', () => {
+                    if ((checkPass2.value !== checkPass.value) || (!reg2.test(checkPass.value))) {
+                        checkPass2.classList.add('is-invalid');
+                        checkPass2.classList.remove('is-valid');
+                    } else {
+                        checkPass2.classList.add('is-valid');
+                        checkPass2.classList.remove('is-invalid');
+                    }
+                });
+            }
+
+            // 表单提交处理
+            const forms = document.querySelectorAll('.needs-validation');
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    // 重置错误提示
+                    const alertDanger = document.querySelector('.alert-danger');
+                    alertDanger.style.display = 'none';
+                    
+                    // 验证用户名
+                    if (checkUser.value.trim().length < 2 || checkUser.value.trim().length > 30) {
+                        alertDanger.textContent = '用户名长度必须在2-30个字符之间';
+                        alertDanger.style.display = 'block';
+                        setTimeout(() => {
+                            alertDanger.style.display = 'none';
+                        }, 5000); 
+                        return;
+                    }
+                    
+                    // 验证手机号
+                    if (!reg1.test(checkPhone.value)) {
+                        alertDanger.textContent = '请输入有效的手机号';
+                        alertDanger.style.display = 'block';
+                        setTimeout(() => {
+                            alertDanger.style.display = 'none';
+                        }, 5000); 
+                        return;
+                    }
+                    
+                    // 验证密码
+                    if (!reg2.test(checkPass.value)) {
+                        alertDanger.textContent = '密码必须是8-20位字符';
+                        alertDanger.style.display = 'block';
+                        setTimeout(() => {
+                            alertDanger.style.display = 'none';
+                        }, 5000); 
+                        return;
+                    }
+                    
+                    // 验证确认密码
+                    if (checkPass.value !== checkPass2.value) {
+                        alertDanger.textContent = '两次输入的密码不一致';
+                        alertDanger.style.display = 'block';
+                        setTimeout(() => {
+                            alertDanger.style.display = 'none';
+                        }, 5000); 
+                        return;
+                    }
+
+                    // 提交数据
+                    const newUser = {
+                        name: checkUser.value.trim(),
+                        phone: checkPhone.value.trim(),
+                        password: checkPass.value.trim()
+                    };
+
+                    axios.post('/api/user/register', newUser)
+                        .then(res => {
+                            console.log('注册成功:', res.data);
+                             // 添加埋点
+                             trackEvent('user_register', {
+                                username: newUser.name,
+                                phone: newUser.phone.substring(0, 3) + '****' + newUser.phone.substring(7), // 脱敏处理
+                                register_success: true
+                            });
+                            
+                            const alertSuccess = document.querySelector('.alert-success');
+                            alertSuccess.style.display = 'block';
+                            
+                            setTimeout(() => {
+                                window.location.href = '/login';
+                            }, 2000);
+                        })
+                        .catch(err => {
+                            console.error('注册失败:', err.response?.data || err.message);
+                            console.log('完整错误对象:', err);
+                            console.log('错误响应:', err.response);
+                            console.log('错误数据:', err.response?.data);
+                            console.log('错误状态:', err.response?.status);
+                            
+                            // 根据后端返回的具体错误信息显示不同的提示
+                            let errorMessage = '注册失败，请重新注册';
+                            
+                            // 检查错误对象本身是否包含错误信息
+                            if (typeof err === 'string') {
+                                errorMessage = err;
+                            } else if (err.response?.data) {
+                                console.log('后端返回的错误信息:', err.response.data);
+                                if (err.response.data === '该昵称已被占用') {
+                                    errorMessage = '该昵称已被占用';
+                                } else if (err.response.data === '该手机号已被占用') {
+                                    errorMessage = '该手机号已被占用';
+                                } else {
+                                    errorMessage = err.response.data;
+                                }
+                            } else if (err.message) {
+                                // 如果错误对象本身包含消息
+                                if (err.message === '该昵称已被占用') {
+                                    errorMessage = '该昵称已被占用';
+                                } else if (err.message === '该手机号已被占用') {
+                                    errorMessage = '该手机号已被占用';
+                                } else {
+                                    errorMessage = err.message;
+                                }
+                            }
+                            
+                            console.log('最终显示的错误信息:', errorMessage);
+                            alertDanger.textContent = errorMessage;
+                            alertDanger.style.display = 'block';
+                            setTimeout(() => {
+                                alertDanger.style.display = 'none';
+                            }, 5000);
+                        });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

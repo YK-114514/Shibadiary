@@ -1,0 +1,342 @@
+// 图片优化和懒加载脚本
+class ImageOptimizer {
+    constructor() {
+        this.intersectionObserver = null;
+        this.imageCache = new Map();
+        this.supportedFormats = this.detectSupportedFormats();
+        this.devicePixelRatio = window.devicePixelRatio || 1;
+        this.init();
+    }
+
+    // 检测浏览器支持的图片格式
+    detectSupportedFormats() {
+        const canvas = document.createElement('canvas');
+        const formats = {
+            webp: false,
+            avif: false,
+            jpeg: true, // 基本支持
+            png: true   // 基本支持
+        };
+
+        // 检测WebP支持
+        try {
+            canvas.toDataURL('image/webp');
+            formats.webp = true;
+        } catch (e) {
+            formats.webp = false;
+        }
+
+        // 检测AVIF支持
+        try {
+            canvas.toDataURL('image/avif');
+            formats.avif = true;
+        } catch (e) {
+            formats.avif = false;
+        }
+
+        return formats;
+    }
+
+    // 初始化
+    init() {
+        this.setupIntersectionObserver();
+        this.setupImagePreloading();
+        this.optimizeExistingImages();
+        this.setupProgressiveLoading();
+    }
+
+    // 设置交叉观察器用于懒加载
+    setupIntersectionObserver() {
+        if ('IntersectionObserver' in window) {
+            this.intersectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        this.loadImage(img);
+                        this.intersectionObserver.unobserve(img);
+                    }
+                });
+            }, {
+                rootMargin: '50px 0px', // 提前50px开始加载
+                threshold: 0.1
+            });
+        }
+    }
+
+    // 设置图片预加载
+    setupImagePreloading() {
+        // 预加载关键图片
+        const criticalImages = [
+            '/front-end/images/logo.webp',
+            '/front-end/images/title.webp',
+            '/front-end/images/default_avatar.jpg'
+        ];
+
+        criticalImages.forEach(src => {
+            if (this.supportedFormats.webp && src.endsWith('.webp')) {
+                this.preloadImage(src);
+            } else if (src.endsWith('.jpg') || src.endsWith('.png')) {
+                this.preloadImage(src);
+            }
+        });
+    }
+
+    // 预加载图片
+    preloadImage(src) {
+        const img = new Image();
+        img.src = src;
+        this.imageCache.set(src, img);
+    }
+
+    // 优化现有图片
+    optimizeExistingImages() {
+        const images = document.querySelectorAll('img, image');
+        images.forEach(img => {
+            this.optimizeImage(img);
+        });
+    }
+
+    // 优化单个图片
+    optimizeImage(img) {
+        // 设置懒加载
+        if (!img.hasAttribute('loading')) {
+            img.setAttribute('loading', 'lazy');
+        }
+
+        // 设置图片尺寸（如果未设置）
+        if (!img.hasAttribute('width') && !img.hasAttribute('height')) {
+            this.setImageDimensions(img);
+        }
+
+        // 优化图片源
+        this.optimizeImageSource(img);
+
+        // 添加到懒加载观察器
+        if (this.intersectionObserver && !img.complete) {
+            this.intersectionObserver.observe(img);
+        }
+    }
+
+    // 设置图片尺寸
+    setImageDimensions(img) {
+        const computedStyle = window.getComputedStyle(img);
+        const width = computedStyle.width;
+        const height = computedStyle.height;
+
+        if (width !== 'auto' && height !== 'auto') {
+            img.setAttribute('width', parseInt(width));
+            img.setAttribute('height', parseInt(height));
+        }
+    }
+
+    // 优化图片源
+    optimizeImageSource(img) {
+        const originalSrc = img.src || img.getAttribute('src');
+        if (!originalSrc) return;
+
+        // 生成优化后的图片源
+        const optimizedSrc = this.generateOptimizedSrc(originalSrc);
+        
+        if (optimizedSrc !== originalSrc) {
+            // 设置srcset用于响应式图片
+            this.setResponsiveSrcset(img, originalSrc);
+            
+            // 设置WebP格式（如果支持）
+            if (this.supportedFormats.webp) {
+                this.setWebPSource(img, originalSrc);
+            }
+        }
+    }
+
+    // 生成优化后的图片源
+    generateOptimizedSrc(originalSrc) {
+        // 检查是否已经是优化后的路径
+        if (originalSrc.includes('/optimized/')) {
+            return originalSrc;
+        }
+
+        // 生成优化后的路径
+        const url = new URL(originalSrc, window.location.origin);
+        const pathParts = url.pathname.split('/');
+        const filename = pathParts.pop();
+        const nameWithoutExt = filename.split('.')[0];
+        const ext = filename.split('.').pop();
+
+        // 根据设备像素比选择尺寸
+        let sizeSuffix = '';
+        if (this.devicePixelRatio >= 3) {
+            sizeSuffix = '_large';
+        } else if (this.devicePixelRatio >= 2) {
+            sizeSuffix = '_medium';
+        } else {
+            sizeSuffix = '_small';
+        }
+
+        // 构建优化后的路径
+        pathParts.push('optimized');
+        pathParts.push(`${nameWithoutExt}${sizeSuffix}.${ext}`);
+        
+        return url.origin + pathParts.join('/');
+    }
+
+    // 设置响应式srcset
+    setResponsiveSrcset(img, originalSrc) {
+        const url = new URL(originalSrc, window.location.origin);
+        const pathParts = url.pathname.split('/');
+        const filename = pathParts.pop();
+        const nameWithoutExt = filename.split('.')[0];
+        const ext = filename.split('.').pop();
+
+        const srcset = [
+            `${url.origin}${pathParts.join('/')}/optimized/${nameWithoutExt}_small.${ext} 1x`,
+            `${url.origin}${pathParts.join('/')}/optimized/${nameWithoutExt}_medium.${ext} 2x`,
+            `${url.origin}${pathParts.join('/')}/optimized/${nameWithoutExt}_large.${ext} 3x`
+        ].join(', ');
+
+        img.setAttribute('srcset', srcset);
+    }
+
+    // 设置WebP格式源
+    setWebPSource(img, originalSrc) {
+        const url = new URL(originalSrc, window.location.origin);
+        const pathParts = url.pathname.split('/');
+        const filename = pathParts.pop();
+        const nameWithoutExt = filename.split('.')[0];
+
+        const webpSrc = `${url.origin}${pathParts.join('/')}/optimized/${nameWithoutExt}.webp`;
+        
+        // 检查WebP文件是否存在
+        fetch(webpSrc, { method: 'HEAD' })
+            .then(response => {
+                if (response.ok) {
+                    img.setAttribute('data-webp', webpSrc);
+                }
+            })
+            .catch(() => {
+                // WebP文件不存在，忽略
+            });
+    }
+
+    // 设置渐进式加载
+    setupProgressiveLoading() {
+        // 为所有图片添加渐进式加载效果
+        const images = document.querySelectorAll('img, image');
+        images.forEach(img => {
+            if (!img.classList.contains('progressive-loaded')) {
+                img.classList.add('progressive-loading');
+                this.addProgressiveLoading(img);
+            }
+        });
+    }
+
+    // 添加渐进式加载效果
+    addProgressiveLoading(img) {
+        // 创建低质量占位图
+        const placeholder = this.createPlaceholder(img);
+        img.parentNode.insertBefore(placeholder, img);
+        
+        // 图片加载完成后显示
+        img.addEventListener('load', () => {
+            img.classList.add('progressive-loaded');
+            img.classList.remove('progressive-loading');
+            if (placeholder.parentNode) {
+                placeholder.parentNode.removeChild(placeholder);
+            }
+        });
+
+        // 图片加载失败处理
+        img.addEventListener('error', () => {
+            img.classList.add('progressive-error');
+            img.classList.remove('progressive-loading');
+            if (placeholder.parentNode) {
+                placeholder.parentNode.removeChild(placeholder);
+            }
+        });
+    }
+
+    // 创建占位图
+    createPlaceholder(img) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'image-placeholder';
+        placeholder.style.cssText = `
+            width: ${img.width || 100}px;
+            height: ${img.height || 100}px;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 4px;
+        `;
+        return placeholder;
+    }
+
+    // 加载图片
+    loadImage(img) {
+        const src = img.getAttribute('data-src') || img.src;
+        if (!src) return;
+
+        // 如果支持WebP且有WebP版本，优先使用
+        if (this.supportedFormats.webp && img.getAttribute('data-webp')) {
+            img.src = img.getAttribute('data-webp');
+        } else {
+            img.src = src;
+        }
+    }
+
+    // 添加CSS样式
+    addStyles() {
+        if (document.getElementById('image-optimization-styles')) return;
+
+        const style = document.createElement('style');
+        style.id = 'image-optimization-styles';
+        style.textContent = `
+            .progressive-loading {
+                opacity: 0;
+                transition: opacity 0.3s ease-in-out;
+            }
+            
+            .progressive-loaded {
+                opacity: 1;
+            }
+            
+            .progressive-error {
+                opacity: 0.5;
+                filter: grayscale(100%);
+            }
+            
+            .image-placeholder {
+                display: inline-block;
+                vertical-align: middle;
+            }
+            
+            @keyframes loading {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+            }
+            
+            img[loading="lazy"] {
+                transition: opacity 0.3s ease-in-out;
+            }
+        `;
+        
+        document.head.appendChild(style);
+    }
+
+    // 销毁
+    destroy() {
+        if (this.intersectionObserver) {
+            this.intersectionObserver.disconnect();
+        }
+        this.imageCache.clear();
+    }
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', () => {
+    window.imageOptimizer = new ImageOptimizer();
+    window.imageOptimizer.addStyles();
+});
+
+// 导出供其他脚本使用
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ImageOptimizer;
+}

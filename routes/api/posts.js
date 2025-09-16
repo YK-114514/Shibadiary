@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const db = require('../../database/index')
 const multer = require('multer');
 const path = require('path');
+const { CacheManager, CACHE_PATTERNS } = require('../../cache-manager');
 
 // 配置multer存储，保留文件后缀
 const storage = multer.diskStorage({
@@ -70,13 +71,17 @@ function toMysqlDatetime(date) {
 router.get('/friends', passport.authenticate('jwt', { session: false }), async (req, res) => {
     try {
         const userId = req.user.id_user;
-        console.log('获取好友帖子，用户ID:', userId);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        
+        console.log('获取好友帖子，用户ID:', userId, '分页:', { page, limit, offset });
         
         // 获取当前用户的关注列表
         const userResult = await query('SELECT following FROM user WHERE id_user = ?', [userId]);
         
         if (userResult.length === 0) {
-            return res.json({ success: true, data: [] });
+            return res.json({ success: true, data: [], pagination: { page, limit, total: 0, totalPages: 0 } });
         }
         
         const followingStr = userResult[0].following || '';
@@ -85,27 +90,50 @@ router.get('/friends', passport.authenticate('jwt', { session: false }), async (
         console.log('关注列表:', followingArr);
         
         if (followingArr.length === 0) {
-            return res.json({ success: true, data: [] });
+            return res.json({ success: true, data: [], pagination: { page, limit, total: 0, totalPages: 0 } });
         }
         
-        // 获取关注的人的帖子
+        // 获取关注的人的帖子总数
         const placeholders = followingArr.map(() => '?').join(',');
+        const countSql = `
+            SELECT COUNT(*) as total 
+            FROM post_infom p
+            WHERE p.id_user IN (${placeholders})
+        `;
+        
+        const countResult = await query(countSql, followingArr);
+        const total = countResult[0].total;
+        const totalPages = Math.ceil(total / limit);
+        
+        // 获取关注的人的帖子（使用JOIN避免N+1查询）
         const sqlStr = `
             SELECT p.*, u.name, u.avatar 
             FROM post_infom p
             LEFT JOIN user u ON p.id_user = u.id_user
             WHERE p.id_user IN (${placeholders}) 
             ORDER BY p.time DESC
+            LIMIT ? OFFSET ?
         `;
         
         console.log('执行SQL查询:', sqlStr);
-        console.log('查询参数:', followingArr);
+        console.log('查询参数:', [...followingArr, limit, offset]);
         
-        const results = await query(sqlStr, followingArr);
+        const results = await query(sqlStr, [...followingArr, limit, offset]);
         
-        console.log('好友帖子数量:', results.length);
+        console.log('好友帖子数量:', results.length, '总数:', total);
         
-        return res.json({ success: true, data: results });
+        return res.json({ 
+            success: true, 
+            data: results,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages,
+                hasNext: page < totalPages,
+                hasPrev: page > 1
+            }
+        });
         
     } catch (error) {
         console.error('获取好友帖子失败:', error);
@@ -181,63 +209,54 @@ router.get('/search', (req, res) => {
 });
 
 //获取全部帖子信息（支持分页）
-router.get('/index', (req, res) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
-    const offset = (page - 1) * limit;
-    
-    console.log('首页分页参数:', { page, limit, offset });
-    
-    // 获取帖子总数
-    db.query('SELECT COUNT(*) as total FROM post_infom', (err, countResult) => {
-        if (err) {
-            console.log('获取帖子总数失败:', err.message)
-            return res.status(500).json({ error: '获取帖子总数失败' })
-        }
+router.get('/index', async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.page) || 10; // 增加默认分页大小
+        const offset = (page - 1) * limit;
+        
+        console.log('首页分页参数:', { page, limit, offset });
+        
+        // 并行执行总数查询和帖子查询，提高性能
+        const [countResult, postsResult] = await Promise.all([
+            query('SELECT COUNT(*) as total FROM post_infom'),
+            query(`
+                SELECT p.*, u.name, u.avatar 
+                FROM post_infom p 
+                LEFT JOIN user u ON p.id_user = u.id_user 
+                ORDER BY p.time DESC 
+                LIMIT ? OFFSET ?
+            `, [limit, offset])
+        ]);
         
         const total = countResult[0].total;
         const totalPages = Math.ceil(total / limit);
         
         console.log('首页分页计算结果:', { total, totalPages, currentPage: page });
+        console.log('首页查询到的帖子数量:', postsResult.length);
         
-        // 获取分页帖子
-        db.query('SELECT p.*, u.name, u.avatar FROM post_infom p LEFT JOIN user u ON p.id_user = u.id_user ORDER BY p.time DESC LIMIT ? OFFSET ?', 
-            [limit, offset], (err, results) => {
-            if (err) {
-                console.log('获取分页帖子失败:', err.message)
-                return res.status(500).json({ error: '获取分页帖子失败' })
-            }
-            
-            console.log('首页查询到的帖子数量:', results.length);
-            
-            if (results.length === 0) {
-                return res.json({
-                    posts: [],
-                    pagination: {
-                        currentPage: page,
-                        totalPages: totalPages,
-                        totalPosts: total,
-                        postsPerPage: limit,
-                        hasNextPage: page < totalPages,
-                        hasPrevPage: page > 1
-                    }
-                });
-            } else {
-                return res.json({
-                    posts: results,
-                    pagination: {
-                        currentPage: page,
-                        totalPages: totalPages,
-                        totalPosts: total,
-                        postsPerPage: limit,
-                        hasNextPage: page < totalPages,
-                        hasPrevPage: page > 1
-                    }
-                });
+        return res.json({
+            success: true,
+            posts: postsResult,
+            pagination: {
+                currentPage: page,
+                totalPages: totalPages,
+                totalPosts: total,
+                postsPerPage: limit,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1
             }
         });
-    });
-})
+        
+    } catch (error) {
+        console.error('获取首页帖子失败:', error);
+        return res.status(500).json({ 
+            success: false,
+            error: '获取首页帖子失败',
+            message: error.message 
+        });
+    }
+});
 
 //根据点赞数显示帖子顺序（支持分页）
 router.get('/indexLike', (req, res) => {
@@ -552,6 +571,14 @@ router.post(
                 if(postResult.length > 0) {
                     console.log('新帖子信息:', postResult[0]);
                     
+                    // 清理相关缓存
+                    try {
+                        CacheManager.invalidateByPattern(CACHE_PATTERNS.POSTS);
+                        console.log('清理帖子相关缓存成功');
+                    } catch (cacheError) {
+                        console.log('清理缓存失败:', cacheError.message);
+                    }
+                    
                     // 发送WebSocket通知
                     try {
                         if (io) {
@@ -664,6 +691,14 @@ router.post('/comments', passport.authenticate('jwt', { session: false }), async
         const result = await query(sqlInsert, [addComment.content, addComment.id_from_post, addComment.id_user, addComment.parent_id, addComment.parent_user_id]);
         
         if (result.affectedRows === 1) {
+            // 清理相关缓存
+            try {
+                CacheManager.invalidateByPattern(CACHE_PATTERNS.POSTS);
+                console.log('添加评论后清理缓存成功');
+            } catch (cacheError) {
+                console.log('清理缓存失败:', cacheError.message);
+            }
+            
             // 新增：插入成功后查出完整评论对象返回（包含用户信息）
             const newId = result.insertId;
             const rows = await query('SELECT c.*, u.name, u.avatar FROM comments c LEFT JOIN user u ON c.id_user = u.id_user WHERE c.idcomments=?', [newId]);
@@ -972,6 +1007,14 @@ router.post('/addLike', passport.authenticate('jwt', { session: false }), async 
                     console.log('发送WebSocket通知失败:', wsError.message);
                 }
                 
+                // 清理相关缓存
+                try {
+                    CacheManager.invalidateByPattern(CACHE_PATTERNS.POSTS);
+                    console.log('点赞后清理缓存成功');
+                } catch (cacheError) {
+                    console.log('清理缓存失败:', cacheError.message);
+                }
+                
                 return res.json({ success: true, message: '点赞成功' });
             } else {
                 console.error('插入点赞记录失败，影响行数:', insertLikeResult.affectedRows);
@@ -1009,6 +1052,15 @@ router.delete('/:id', passport.authenticate('jwt', { session: false }), (req, re
             if (err) {
                 return res.status(500).json({ code: 1, msg: '删除失败' });
             }
+            
+            // 清理相关缓存
+            try {
+                CacheManager.invalidateByPattern(CACHE_PATTERNS.POSTS);
+                console.log('删除帖子后清理缓存成功');
+            } catch (cacheError) {
+                console.log('清理缓存失败:', cacheError.message);
+            }
+            
             res.json({ code: 0, msg: '删除成功' });
         });
     });
@@ -1032,11 +1084,79 @@ router.delete('/comments/:commentId', passport.authenticate('jwt', { session: fa
         // 删除评论
         await query('DELETE FROM comments WHERE idcomments = ?', [commentId]);
 
+        // 清理相关缓存
+        try {
+            CacheManager.invalidateByPattern(CACHE_PATTERNS.POSTS);
+            console.log('删除评论后清理缓存成功');
+        } catch (cacheError) {
+            console.log('清理缓存失败:', cacheError.message);
+        }
+
         res.json({ success: true, message: '删除成功' });
 
     } catch (error) {
         console.error('删除评论失败:', error);
         res.status(500).json({ success: false, message: '删除失败' });
+    }
+});
+
+// 缓存管理接口
+router.post('/cache/clear', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        const { pattern } = req.body;
+        let clearedCount = 0;
+        
+        if (pattern === 'all') {
+            clearedCount = CacheManager.clearAll();
+        } else if (pattern === 'posts') {
+            clearedCount = CacheManager.invalidateByPattern(CACHE_PATTERNS.POSTS);
+        } else if (pattern === 'user') {
+            clearedCount = CacheManager.invalidateUserCache(req.user.id_user);
+        } else if (pattern === 'emergency') {
+            // 紧急清理：清理所有可能的缓存
+            clearedCount = CacheManager.clearAll();
+            console.log(`[紧急缓存清理] 用户 ${req.user.id_user} 清理了所有缓存`);
+        } else {
+            return res.status(400).json({ success: false, message: '无效的清理模式' });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: `缓存清理成功，清理了 ${clearedCount} 个条目`,
+            clearedCount 
+        });
+    } catch (error) {
+        console.error('缓存清理失败:', error);
+        res.status(500).json({ success: false, message: '缓存清理失败' });
+    }
+});
+
+// 紧急缓存清理接口（无需认证，用于调试）
+router.post('/cache/emergency-clear', async (req, res) => {
+    try {
+        const clearedCount = CacheManager.clearAll();
+        console.log(`[紧急缓存清理] 匿名用户清理了所有缓存，共 ${clearedCount} 个条目`);
+        
+        res.json({ 
+            success: true, 
+            message: `紧急缓存清理成功，清理了 ${clearedCount} 个条目`,
+            clearedCount,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('紧急缓存清理失败:', error);
+        res.status(500).json({ success: false, message: '紧急缓存清理失败' });
+    }
+});
+
+// 获取缓存统计信息
+router.get('/cache/stats', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        const stats = CacheManager.getStats();
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        console.error('获取缓存统计失败:', error);
+        res.status(500).json({ success: false, message: '获取缓存统计失败' });
     }
 });
 

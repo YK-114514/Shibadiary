@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片显示测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .image-item {
+            text-align: center;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .image-item img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .image-item .status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .test-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .test-result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .test-result.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <h1>🖼️ 图片显示测试页面</h1>
+    <p>此页面用于测试小柴日记项目中的图片是否能正常显示</p>
+
+    <div class="test-section">
+        <h2>📸 基础图片测试</h2>
+        <div class="image-grid">
+            <div class="image-item">
+                <img src="/images/logo.png" alt="Logo" onload="markImageLoaded(this, 'success')" onerror="markImageLoaded(this, 'error')">
+                <div>Logo图片</div>
+                <div class="status loading">加载中...</div>
+            </div>
+            <div class="image-item">
+                <img src="/images/title.png" alt="Title" onload="markImageLoaded(this, 'success')" onerror="markImageLoaded(this, 'error')">
+                <div>标题图片</div>
+                <div class="status loading">加载中...</div>
+            </div>
+            <div class="image-item">
+                <img src="/images/logo_2.png" alt="Logo 2" onload="markImageLoaded(this, 'success')" onerror="markImageLoaded(this, 'error')">
+                <div>Logo 2</div>
+                <div class="status loading">加载中...</div>
+            </div>
+            <div class="image-item">
+                <img src="/images/default_avatar.jpg" alt="默认头像" onload="markImageLoaded(this, 'success')" onerror="markImageLoaded(this, 'error')">
+                <div>默认头像</div>
+                <div class="status loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔄 替代路径测试</h2>
+        <div class="image-grid">
+            <div class="image-item">
+                <img src="/front-end/images/logo.png" alt="Logo (替代路径)" onload="markImageLoaded(this, 'success')" onerror="markImageLoaded(this, 'error')">
+                <div>Logo (替代路径)</div>
+                <div class="status loading">加载中...</div>
+            </div>
+            <div class="image-item">
+                <img src="/front-end/images/title.png" alt="Title (替代路径)" onload="markImageLoaded(this, 'success')" onerror="markImageLoaded(this, 'error')">
+                <div>Title (替代路径)</div>
+                <div class="status loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📤 上传图片测试</h2>
+        <div class="image-grid">
+            <div class="image-item">
+                <img src="/uploads/1755100467471_d14338f1-f19b-40b9-9295-3725734131ab.webp" alt="上传图片" onload="markImageLoaded(this, 'success')" onerror="markImageLoaded(this, 'error')">
+                <div>上传的WebP图片</div>
+                <div class="status loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 错误路径测试</h2>
+        <div class="image-grid">
+            <div class="image-item">
+                <img src="/images/nonexistent.png" alt="不存在的图片" onload="markImageLoaded(this, 'success')" onerror="markImageLoaded(this, 'error')">
+                <div>不存在的图片</div>
+                <div class="status loading">加载中...</div>
+            </div>
+            <div class="image-item">
+                <img src="../images/logo.png" alt="相对路径" onload="markImageLoaded(this, 'success')" onerror="markImageLoaded(this, 'error')">
+                <div>相对路径 (应该失败)</div>
+                <div class="status loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="test-results" class="test-section">
+        <h2>📊 测试结果</h2>
+        <div id="results-content">
+            <p>正在测试图片加载状态...</p>
+        </div>
+    </div>
+
+    <script>
+        let totalImages = 0;
+        let loadedImages = 0;
+        let failedImages = 0;
+
+        function markImageLoaded(img, status) {
+            const statusElement = img.parentElement.querySelector('.status');
+            statusElement.textContent = status === 'success' ? '✅ 加载成功' : '❌ 加载失败';
+            statusElement.className = `status ${status}`;
+            
+            if (status === 'success') {
+                loadedImages++;
+            } else {
+                failedImages++;
+            }
+            
+            updateResults();
+        }
+
+        function updateResults() {
+            totalImages = loadedImages + failedImages;
+            const resultsDiv = document.getElementById('results-content');
+            
+            if (totalImages === 0) {
+                resultsDiv.innerHTML = '<p>正在测试图片加载状态...</p>';
+                return;
+            }
+            
+            const successRate = ((loadedImages / totalImages) * 100).toFixed(1);
+            let resultClass = 'success';
+            let resultText = '🎉 所有图片加载成功！';
+            
+            if (failedImages > 0) {
+                resultClass = failedImages === totalImages ? 'error' : 'warning';
+                resultText = failedImages === totalImages ? 
+                    '❌ 所有图片加载失败！' : 
+                    `⚠️ 部分图片加载失败 (${failedImages}/${totalImages})`;
+            }
+            
+            resultsDiv.innerHTML = `
+                <div class="test-result ${resultClass}">
+                    ${resultText}
+                </div>
+                <p><strong>总计:</strong> ${totalImages} 张图片</p>
+                <p><strong>成功:</strong> ${loadedImages} 张</p>
+                <p><strong>失败:</strong> ${failedImages} 张</p>
+                <p><strong>成功率:</strong> ${successRate}%</p>
+            `;
+        }
+
+        // 页面加载完成后开始测试
+        window.addEventListener('load', function() {
+            setTimeout(updateResults, 1000);
+        });
+    </script>
+</body>
+</html>

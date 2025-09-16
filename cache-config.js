@@ -8,45 +8,45 @@ module.exports = {
     strategies: {
         // 帖子相关接口
         posts: {
-            // 首页帖子列表 - 频繁更新，短缓存
+            // 首页帖子列表 - 实时更新，很短缓存
             '/api/posts/index': { 
-                maxAge: 300,           // 5分钟缓存
-                staleWhileRevalidate: 600,  // 10分钟stale
+                maxAge: 10,            // 10秒缓存（进一步减少）
+                staleWhileRevalidate: 30,   // 30秒stale（进一步减少）
                 description: '首页帖子列表'
             },
             
-            // 热门帖子列表 - 相对稳定，中等缓存
+            // 热门帖子列表 - 相对稳定，短缓存
             '/api/posts/indexLike': { 
-                maxAge: 600,           // 10分钟缓存
-                staleWhileRevalidate: 1200, // 20分钟stale
+                maxAge: 30,            // 30秒缓存（进一步减少）
+                staleWhileRevalidate: 60,   // 1分钟stale（进一步减少）
                 description: '热门帖子列表'
             },
             
             // 搜索接口 - 查询频繁，短缓存
             '/api/posts/search': { 
-                maxAge: 180,           // 3分钟缓存
-                staleWhileRevalidate: 300,  // 5分钟stale
+                maxAge: 60,            // 1分钟缓存（减少）
+                staleWhileRevalidate: 120,  // 2分钟stale（减少）
                 description: '帖子搜索'
             },
             
-            // 单个帖子详情 - 相对稳定，长缓存
+            // 单个帖子详情 - 相对稳定，中等缓存
             '/api/posts/:postId': { 
-                maxAge: 600,           // 10分钟缓存
-                staleWhileRevalidate: 1200, // 20分钟stale
+                maxAge: 300,           // 5分钟缓存（减少）
+                staleWhileRevalidate: 600,  // 10分钟stale（减少）
                 description: '帖子详情'
             },
             
-            // 帖子评论 - 频繁更新，短缓存
+            // 帖子评论 - 频繁更新，很短缓存
             '/api/posts/:postId/comments': { 
-                maxAge: 180,           // 3分钟缓存
-                staleWhileRevalidate: 300,  // 5分钟stale
+                maxAge: 60,            // 1分钟缓存（减少）
+                staleWhileRevalidate: 120,  // 2分钟stale（减少）
                 description: '帖子评论'
             },
             
             // 点赞状态 - 频繁更新，很短缓存
             '/api/posts/like/:postId': { 
-                maxAge: 60,            // 1分钟缓存
-                staleWhileRevalidate: 120,  // 2分钟stale
+                maxAge: 30,            // 30秒缓存（减少）
+                staleWhileRevalidate: 60,   // 1分钟stale（减少）
                 description: '点赞状态'
             }
         },

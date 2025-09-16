@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+         <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4KNWJP3BH3"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-4KNWJP3BH3');
+</script>
+        <link rel="stylesheet" href="../css/header.css">
+    </head>
+
+    <div class="father">
+    
+    <div class='header'>
+       <div class="header-next">
+            <image class="logo" src="/images/logo.png"></image>
+            <image class="title" src="/images/title.png"></image>
+            <ul class="topics">
+                <li >
+                    <a href="/index" class="active" data-id="1">宠物博客</a>
+                </li>
+                <li>
+                    <a data-id="2" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;" title="功能开发中">宠物问答</a>
+                </li>
+              
+            </ul>
+          <div class="login-header">
+            <a href="/login" class="before-login">登录</a>
+            <a href="javascript:;" class="user-menu" style="display:none">
+                欢迎，<span class="username"></span>
+               
+            </a>
+            <div class="user-dropdown">
+                <a href="/personal">个人信息</a>
+                <a href="/message">消息中心<span class="message-dot"></span></a>
+                <a href="javascript:;">我的私信</a>
+                <a href="javascript:;" id="logout">退出登录</a>
+            </div>
+           </div>
+           
+        </div>
+    </div>
+
+    <script>
+        // 获取用户数据
+        const userD = localStorage.getItem('user_data');
+        let userData = null;
+        try {
+            userData = userD ? JSON.parse(userD) : null;
+        } catch (e) {
+            console.error('解析用户数据失败:', e);
+        }
+
+        // 获取header相关元素
+        const logining = document.querySelector('.login-header .before-login');
+        const userMenu = document.querySelector('.user-menu');
+        const username = document.querySelector('.username');
+        const userDropdown = document.querySelector('.user-dropdown');
+        const logout_click = document.getElementById('logout');
+
+        // 初始化登录状态
+        function initLoginState() {
+            console.log('初始化登录状态');
+            if(!localStorage.getItem('eleToken') || !userData){
+                logining.style.display = 'block';
+                userMenu.style.display = 'none';
+            } else {
+                logining.style.display = 'none';
+                userMenu.style.display = 'block';
+                username.textContent = userData.name;
+
+                // 点击显示/隐藏下拉菜单
+                if (userMenu && userDropdown) {
+                    userMenu.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        userDropdown.classList.toggle('show');
+                        const arrow = userMenu.querySelector('.arrow');
+                        if (arrow) {
+                            arrow.classList.toggle('rotate');
+                        }
+                    });
+
+                    // 点击其他地方关闭下拉菜单
+                    document.addEventListener('click', (e) => {
+                        if (userMenu && userDropdown && !userMenu.contains(e.target) && !userDropdown.contains(e.target)) {
+                            userDropdown.classList.remove('show');
+                            const arrow = userMenu.querySelector('.arrow');
+                            if (arrow) {
+                                arrow.classList.remove('rotate');
+                            }
+                        }
+                    });
+                }
+
+                // 退出登录
+                if (logout_click) {
+                    logout_click.addEventListener('click', () => {
+                        // 调用全局退出登录函数
+                        if (window.logout) {
+                            window.logout();
+                        }
+                        // 更新显示状态
+                        logining.style.display = 'block';
+                        userMenu.style.display = 'none';
+                        userDropdown.classList.remove('show');
+                        const arrow = userMenu?.querySelector('.arrow');
+                        if (arrow) arrow.classList.remove('rotate');
+                    });
+                }
+            }
+        }
+
+        // 页面加载完成后初始化登录状态
+        //document.addEventListener('DOMContentLoaded', initLoginState);
+
+        window.initLoginState = initLoginState;
+    </script>
+</div>
+
+
+
+
+        
+ 

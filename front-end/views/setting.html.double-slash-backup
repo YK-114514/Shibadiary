@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4KNWJP3BH3"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-4KNWJP3BH3');
+</script>
+    <meta charset="UTF-8">
+    <title>个人设置</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../http.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+
+    <style>
+        body { background: #f7f7f7; }
+        .setting-container { 
+            max-width: 500px; 
+            margin: 0 auto; 
+            background: #fff; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 8px #eee; 
+            padding: 20px 32px 16px 32px; 
+            position: relative;
+            margin-top: 100px;
+            z-index: 1;
+        }
+        .setting-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 24px; text-align: center; }
+        .avatar-preview { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; margin-bottom: 10px; }
+        .form-group { margin-bottom: 22px; }
+        .form-label { font-weight: 500; }
+        .btn-setting { 
+            width: 100%; 
+            background-color: #e09620 !important;
+            border-color: #e09620 !important;
+            color: white !important;
+        }
+        .btn-setting:hover {
+            background-color: #d68a1a !important;
+            border-color: #d68a1a !important;
+            color: white !important;
+        }
+        .btn-setting:focus {
+            background-color: #e09620 !important;
+            border-color: #e09620 !important;
+            color: white !important;
+            box-shadow: 0 0 0 0.2rem rgba(224, 150, 32, 0.25) !important;
+        }
+        
+        /* 覆盖Bootstrap的btn-primary样式 */
+        .btn-primary.btn-setting {
+            background-color: #e09620 !important;
+            border-color: #e09620 !important;
+            color: white !important;
+        }
+        
+        .btn-primary.btn-setting:hover {
+            background-color: #d68a1a !important;
+            border-color: #d68a1a !important;
+            color: white !important;
+        }
+        
+        .btn-primary.btn-setting:active,
+        .btn-primary.btn-setting:focus {
+            background-color: #e09620 !important;
+            border-color: #e09620 !important;
+            color: white !important;
+            box-shadow: 0 0 0 0.2rem rgba(224, 150, 32, 0.25) !important;
+        }
+        .setting-section { border-bottom: 1px solid #f0f0f0; padding-bottom: 18px; margin-bottom: 18px; }
+        .setting-section:last-child { border-bottom: none; }
+        .error-msg { color: #d9534f; font-size: 0.95em; margin-top: 6px; }
+        .success-msg { color: #28a745; font-size: 0.95em; margin-top: 6px; }
+        
+        /* 调整布局以适应header */
+        .father {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .next {
+            flex: 1;
+            padding: 20px;
+            margin-top: 60px; /* 为header留出空间 */
+            position: relative;
+        }
+        
+        /* 确保setting容器在正确位置 */
+        .setting-container {
+            margin: 0 auto;
+        }
+        
+        .header{
+    position:fixed;
+    background: linear-gradient(to right, #fcfbf5, #f6efe1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    top:0;
+    width: 100%;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index:100;
+}
+
+.header-next{
+    width: 1200px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    
+    padding: 0 ;
+}
+
+.logo{
+    width: 70px;
+    height: 70px;
+    margin-right: 0px;
+    transition: transform 0.3s ease;
+    margin-left:-60px;
+    
+}
+
+.title{
+    height: 130px;
+    margin-left: 20px;
+}
+        
+        /* 确保topics在a标签内正确显示 */
+        .header-next .topics {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 40px;
+            margin-left: 300px;
+        }
+        
+        .header-next .topics li a {
+            text-decoration: none;
+            color: #666;
+            font-size: 16px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .header-next .topics li a:hover {
+            color: #e09620;
+            background-color: rgba(224, 150, 32, 0.1);
+        }
+        
+        .header-next .topics li a.active {
+            color: #e09620;
+            background-color: rgba(224, 150, 32, 0.1);
+            font-weight: 500;
+        }
+        
+        /* 确保login-header在a标签内正确显示 */
+        .header-next .login-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: 320px;
+        }
+        
+        .header-next .login-header a {
+            text-decoration: none;
+            color: #666;
+            font-size: 14px;
+            padding: 6px 15px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .header-next .login-header a:hover {
+            color: #e09620;
+            background-color: rgba(224, 150, 32, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- 引入header组件 -->
+    <div class="father">
+    
+        <div class='header'>
+           <div class="header-next">
+                <a href="/index" style="text-decoration: none; color: inherit;">
+                    <image class="logo" src="//images/logo.png"></image>
+                    <image class="title" src="//images/title.png"></image>
+                </a>
+                <ul class="topics">
+                    <li >
+                        <a href="/index" data-id="1">宠物博客</a>
+                    </li>
+                    <li>
+                        <a data-id="2" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;" title="功能开发中">宠物问答</a>
+                    </li>
+                  
+                </ul>
+                <div class="login-header">
+                    <a href="/login" class="before-login">登录</a>
+                    <a href="javascript:;" class="user-menu" style="display:none">
+                        欢迎，<span class="username"></span>
+                    </a>
+                    <div class="user-dropdown">
+                        <a href="/personal">个人信息</a>
+                        <a href="/message">消息中心<span class="message-dot"></span></a>
+                        <a href="javascript:;">我的私信</a>
+                        <a href="javascript:;" id="logout">退出登录</a>
+                    </div>
+                </div>
+             
+            </div>
+        </div>
+    
+
+    <div class="next">
+        <div class="setting-container">
+            <div class="setting-title">个人设置</div>
+
+            <!-- 换头像 -->
+            <div class="setting-section">
+                <label class="form-label">头像</label><br>
+                <img loading="lazy" id="avatarPreview" class="avatar-preview" src="/front-end//images/default_avatar.jpg" alt="头像">
+                <input type="file" id="avatarInput" accept="image/*" class="form-control mt-2">
+                <button class="btn btn-primary btn-setting mt-2" id="saveAvatarBtn">保存头像</button>
+                <div id="avatarMsg"></div>
+            </div>
+
+            <!-- 换昵称 -->
+            <div class="setting-section">
+                <label class="form-label">昵称</label>
+                <input type="text" id="nicknameInput" class="form-control" maxlength="16" placeholder="">
+                <button class="btn btn-primary btn-setting mt-2" id="saveNicknameBtn">保存昵称</button>
+                <div id="nicknameMsg"></div>
+            </div>
+
+            <!-- 换密码 -->
+            <div class="setting-section" id="passwordSection">
+                <button class="btn btn-primary btn-setting" id="startChangePwdBtn">修改密码</button>
+                <div id="passwordInputs" style="display:none;">
+                    <label class="form-label mt-2">新密码</label>
+                    <input type="password" id="newPasswordInput" class="form-control">
+                    <label class="form-label mt-2">确认新密码</label>
+                    <input type="password" id="confirmPasswordInput" class="form-control">
+                    <button class="btn btn-primary btn-setting mt-2" id="savePasswordBtn">保存密码</button>
+                </div>
+                <div id="passwordMsg"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// Header 相关功能
+// 检查用户登录状态
+function checkLoginStatus() {
+    const token = localStorage.getItem('eleToken');
+    const userData = localStorage.getItem('user_data');
+    
+    if (!token || !userData) {
+        console.log('未登录，跳转到登录页面');
+        window.location.href = '/login';
+        return;
+    }
+    
+    try {
+        JSON.parse(userData);
+    } catch (e) {
+        console.log('用户数据格式错误，跳转到登录页面');
+        window.location.href = '/login';
+        return;
+    }
+    
+    // 已登录，正常显示
+    const beforeLogin = document.querySelector('.before-login');
+    const userMenu = document.querySelector('.user-menu');
+    const username = document.querySelector('.username');
+    
+    if (beforeLogin && userMenu) {
+        beforeLogin.style.display = 'none';
+        userMenu.style.display = 'inline-block';
+        
+        // 解析JWT获取用户名
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (username) {
+                username.textContent = payload.name || '用户';
+            }
+        } catch (e) {
+            if (username) {
+                username.textContent = '用户';
+            }
+        }
+    }
+}
+
+// 用户菜单显示/隐藏
+const userMenu = document.querySelector('.user-menu');
+const userDropdown = document.querySelector('.user-dropdown');
+
+if (userMenu && userDropdown) {
+    userMenu.addEventListener('click', function(e) {
+        e.preventDefault();
+        userDropdown.style.display = userDropdown.style.display === 'block' ? 'none' : 'block';
+    });
+
+    // 点击其他地方隐藏用户菜单
+    document.addEventListener('click', function(e) {
+        if (!userMenu.contains(e.target) && !userDropdown.contains(e.target)) {
+            userDropdown.style.display = 'none';
+        }
+    });
+}
+
+// 退出登录
+const logoutBtn = document.getElementById('logout');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        // 调用全局退出登录函数
+        if (window.logout) {
+            window.logout();
+        }
+        window.location.href = '/login';
+    });
+}
+
+// 页面加载时检查登录状态
+checkLoginStatus();
+
+// 获取token
+function getToken() {
+    return localStorage.getItem('eleToken') || '';
+}
+
+// 获取当前用户信息（用于显示头像和昵称）
+async function fetchUserInfo() {
+    const token = getToken();
+    if (!token) return;
+    try {
+        // 获取当前用户信息的接口
+        const res = await axios.get('/api/user/me', { headers: { Authorization: token } });
+        if (res.data && res.data.user) {
+            document.getElementById('avatarPreview').src = res.data.user.avatar || '/front-end//images/default_avatar.jpg';
+            document.getElementById('nicknameInput').placeholder = res.data.user.name || '';
+            document.getElementById('nicknameInput').value = '';
+        }
+    } catch (e) {
+        // 忽略
+    }
+}
+
+// 头像预览
+const avatarInput = document.getElementById('avatarInput');
+const avatarPreview = document.getElementById('avatarPreview');
+if (avatarInput && avatarPreview) {
+    avatarInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                avatarPreview.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+// 保存头像
+const saveAvatarBtn = document.getElementById('saveAvatarBtn');
+if (saveAvatarBtn) {
+    saveAvatarBtn.addEventListener('click', async function() {
+    const file = avatarInput.files[0];
+    const msgDiv = document.getElementById('avatarMsg');
+    msgDiv.textContent = '';
+    if (!file) {
+        msgDiv.textContent = '请选择图片';
+        msgDiv.className = 'error-msg';
+        return;
+    }
+    const formData = new FormData();
+    formData.append('avatar', file);
+    try {
+        const res = await axios.post('/api/user/avatar', formData, {
+            headers: { 'Authorization': getToken(), 'Content-Type': 'multipart/form-data' }
+        });
+        if (res.data.success) {
+            msgDiv.textContent = '头像修改成功';
+            msgDiv.className = 'success-msg';
+            // 更新本地头像
+            avatarPreview.src = res.data.avatar;
+            // 更新localStorage中的token
+            if (res.data.newToken) {
+                localStorage.setItem('eleToken', res.data.newToken);
+                console.log('Token已更新:', res.data.newToken);
+            }
+            
+            // 立即更新所有页面的头像显示
+            updateAllAvatars(res.data.avatar);
+            
+            // 通知其他页面更新用户信息
+            notifyOtherPages(res.data.avatar, null);
+            
+            // 更新localStorage中的用户数据
+            const currentUserData = JSON.parse(localStorage.getItem('user_data') || '{}');
+            currentUserData.avatar = res.data.avatar;
+            localStorage.setItem('user_data', JSON.stringify(currentUserData));
+            
+            console.log('头像更新完成，新头像URL:', res.data.avatar);
+        } else {
+            msgDiv.textContent = res.data.msg || '头像修改失败';
+            msgDiv.className = 'error-msg';
+        }
+    } catch (e) {
+        msgDiv.textContent = '头像修改失败';
+        msgDiv.className = 'error-msg';
+    }
+    });
+}
+
+// 保存昵称
+const saveNicknameBtn = document.getElementById('saveNicknameBtn');
+if (saveNicknameBtn) {
+    saveNicknameBtn.addEventListener('click', async function() {
+    const nickname = document.getElementById('nicknameInput').value.trim();
+    const msgDiv = document.getElementById('nicknameMsg');
+    msgDiv.textContent = '';
+    if (!nickname) {
+        msgDiv.textContent = '昵称不能为空';
+        msgDiv.className = 'error-msg';
+        return;
+    }
+    try {
+        const res = await axios.post('/api/user/nickname', { nickname }, {
+            headers: { 'Authorization': getToken() }
+        });
+        if (res.data.success) {
+            msgDiv.textContent = '昵称修改成功';
+            msgDiv.className = 'success-msg';
+            
+            // 更新localStorage中的用户数据
+            const currentUserData = JSON.parse(localStorage.getItem('user_data') || '{}');
+            currentUserData.name = nickname;
+            localStorage.setItem('user_data', JSON.stringify(currentUserData));
+            
+            // 通知其他页面更新用户信息
+            notifyOtherPages(null, nickname);
+            
+            console.log('昵称更新完成，新昵称:', nickname);
+        } else {
+            msgDiv.textContent = res.data.msg || '昵称修改失败';
+            msgDiv.className = 'error-msg';
+        }
+    } catch (e) {
+        msgDiv.textContent = '昵称修改失败';
+        msgDiv.className = 'error-msg';
+    }
+    });
+}
+
+// 密码修改弹窗流程
+const startChangePwdBtn = document.getElementById('startChangePwdBtn');
+const passwordInputs = document.getElementById('passwordInputs');
+let oldPwdChecked = false;
+let checkedOldPwd = '';
+
+if (startChangePwdBtn && passwordInputs) {
+    startChangePwdBtn.addEventListener('click', async function() {
+    if (oldPwdChecked) {
+        passwordInputs.style.display = '';
+        return;
+    }
+    const oldPwd = prompt('请输入当前密码：');
+    if (!oldPwd) return;
+    // 校验旧密码
+    try {
+        const res = await axios.post('/api/user/password', { oldPassword: oldPwd, newPassword: '__check__' }, {
+            headers: { 'Authorization': getToken() }
+        });
+        if (res.data.success || res.data.msg === '密码修改失败') {
+            // 只校验旧密码时，后端会返回“密码修改失败”，但只要不是“原密码错误”就认为旧密码正确
+            oldPwdChecked = true;
+            checkedOldPwd = oldPwd;
+            passwordInputs.style.display = '';
+            document.getElementById('passwordMsg').textContent = '';
+        } else {
+            document.getElementById('passwordMsg').textContent = res.data.msg || '原密码错误';
+            document.getElementById('passwordMsg').className = 'error-msg';
+        }
+    } catch (e) {
+        if (e.response && e.response.data && e.response.data.msg === '原密码错误') {
+            document.getElementById('passwordMsg').textContent = '原密码错误';
+        } else {
+            document.getElementById('passwordMsg').textContent = '校验失败';
+        }
+        document.getElementById('passwordMsg').className = 'error-msg';
+    }
+    });
+}
+
+// 保存密码
+const savePasswordBtn = document.getElementById('savePasswordBtn');
+if (savePasswordBtn) {
+    savePasswordBtn.addEventListener('click', async function() {
+    const newPwd = document.getElementById('newPasswordInput').value;
+    const confirmPwd = document.getElementById('confirmPasswordInput').value;
+    const msgDiv = document.getElementById('passwordMsg');
+    msgDiv.textContent = '';
+    if (!oldPwdChecked || !checkedOldPwd) {
+        msgDiv.textContent = '请先验证原密码';
+        msgDiv.className = 'error-msg';
+        return;
+    }
+    if (!newPwd || !confirmPwd) {
+        msgDiv.textContent = '请填写完整';
+        msgDiv.className = 'error-msg';
+        return;
+    }
+    if (newPwd.length < 6) {
+        msgDiv.textContent = '新密码至少6位';
+        msgDiv.className = 'error-msg';
+        return;
+    }
+    if (newPwd !== confirmPwd) {
+        msgDiv.textContent = '两次新密码不一致';
+        msgDiv.className = 'error-msg';
+        return;
+    }
+    try {
+        const res = await axios.post('/api/user/password', {
+            oldPassword: checkedOldPwd,
+            newPassword: newPwd
+        }, {
+            headers: { 'Authorization': getToken() }
+        });
+        if (res.data.success) {
+            msgDiv.textContent = '密码修改成功';
+            msgDiv.className = 'success-msg';
+            document.getElementById('newPasswordInput').value = '';
+            document.getElementById('confirmPasswordInput').value = '';
+            passwordInputs.style.display = 'none';
+            oldPwdChecked = false;
+            checkedOldPwd = '';
+        } else {
+            msgDiv.textContent = res.data.msg || '密码修改失败';
+            msgDiv.className = 'error-msg';
+        }
+    } catch (e) {
+        msgDiv.textContent = '密码修改失败';
+        msgDiv.className = 'error-msg';
+    }
+    });
+}
+
+// 更新所有页面的头像显示
+function updateAllAvatars(newAvatarUrl) {
+    console.log('开始更新设置页面头像，新头像URL:', newAvatarUrl);
+    
+    // 更新所有img标签的头像
+    const allImages = document.querySelectorAll('img');
+    let updatedCount = 0;
+    allImages.forEach(img => {
+        // 检查是否是头像图片（更宽松的条件）
+        if (img.src && (
+            img.src.includes('/front-end//images/default_avatar.jpg') || 
+            img.src.includes('/front-end//images/avatars/') ||
+            img.classList.contains('avatar') ||
+            img.classList.contains('touxiang') ||
+            img.classList.contains('profile')
+        )) {
+            console.log('更新img标签头像:', img.src, '->', newAvatarUrl);
+            // 添加时间戳防止缓存
+            const newUrl = newAvatarUrl + (newAvatarUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+            img.src = newUrl;
+            updatedCount++;
+        }
+    });
+    
+    // 更新所有image标签的头像
+    const allImageElements = document.querySelectorAll('image');
+    allImageElements.forEach(img => {
+        // 检查是否是头像图片（更宽松的条件）
+        if (img.src && (
+            img.src.includes('/front-end//images/default_avatar.jpg') || 
+            img.src.includes('/front-end//images/avatars/') ||
+            img.classList.contains('avatar') ||
+            img.classList.contains('touxiang') ||
+            img.classList.contains('profile')
+        )) {
+            console.log('更新image标签头像:', img.src, '->', newAvatarUrl);
+            // 添加时间戳防止缓存
+            const newUrl = newAvatarUrl + (newAvatarUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+            img.src = newUrl;
+            updatedCount++;
+        }
+    });
+    
+    console.log('设置页面头像更新完成，共更新了', updatedCount, '个头像');
+}
+
+// 通知其他页面更新用户信息
+function notifyOtherPages(newAvatarUrl, newNickname) {
+    console.log('开始通知其他页面更新用户信息:', { avatar: newAvatarUrl, nickname: newNickname });
+    
+    // 使用localStorage来通知其他页面
+    const updateData = {
+        avatar: newAvatarUrl,
+        nickname: newNickname,
+        timestamp: Date.now()
+    };
+    
+    localStorage.setItem('userUpdate', JSON.stringify(updateData));
+    
+    // 触发storage事件来通知其他页面
+    const storageEvent = new StorageEvent('storage', {
+        key: 'userUpdate',
+        newValue: JSON.stringify(updateData),
+        oldValue: null,
+        url: window.location.href
+    });
+    
+    window.dispatchEvent(storageEvent);
+    
+    console.log('已通知其他页面更新用户信息:', updateData);
+}
+
+// 页面加载时获取用户信息
+fetchUserInfo();
+</script>
+    </div>
+</div>
+</body>
+</html> 

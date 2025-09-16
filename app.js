@@ -102,52 +102,22 @@ io.on('connection', (socket) => {
         console.log(`关注通知: ${followerName} ${action}了用户 ${followingId}`)
     })
     
-    // 处理实时点赞数更新
-    socket.on('likeCountUpdate', (data) => {
-        const { postId, likeCount, isLiked } = data
-        
-        // 广播给所有在线用户
-        io.emit('likeCountChanged', {
-            postId,
-            likeCount,
-            isLiked,
-            timestamp: new Date()
-        })
-    })
-    
-    // 处理新帖子通知
-    socket.on('newPost', (data) => {
-        const { post, authorId, authorName } = data
-        
-        // 广播给所有在线用户
-        io.emit('postReceived', {
-            post,
-            authorId,
-            authorName,
-            timestamp: new Date()
-        })
-        
-        console.log(`新帖子通知: ${authorName} 发布了新帖子`)
-    })
-    
-    // 处理用户断开连接
+    // 处理用户离线
     socket.on('disconnect', () => {
-        const userId = onlineUsers.get(socket.id)
-        if (userId) {
+        if (socket.userId) {
             onlineUsers.delete(socket.id)
-            console.log(`用户 ${userId} 断开连接`)
-            
+            console.log(`用户 ${socket.userId} 已断开连接`)
             // 广播用户离线状态
-            socket.broadcast.emit('userOffline', { userId: userId })
+            socket.broadcast.emit('userOffline', { userId: socket.userId })
         }
     })
 })
 
-//引入路由
+// 引入路由
 const user = require('./routes/api/user')
 const posts = require('./routes/api/posts')
 const personal = require('./routes/api/personal')
-const viewRouter = require('./routes/viewRouters');
+const viewRouter = require('./routes/viewRouters')
 const accounts = require('./routes/api/accounts')
 const message = require('./routes/api/message')
 
@@ -159,8 +129,8 @@ app.use(compression({
     level: 6,
     threshold: 1024,
     filter: (req, res) => {
-          // 不压缩图片文件
-          if (req.path.match(/\.(jpg|jpeg|png|gif|webp|bmp|tiff|ico|svg)$/i)) {
+        // 不压缩图片文件
+        if (req.path.match(/\.(jpg|jpeg|png|gif|webp|bmp|tiff|ico|svg)$/i)) {
             return false;
         }
         
@@ -173,56 +143,65 @@ app.use(compression({
         }
         return compression.filter(req, res);
     }
-}));
-// 导入SWR缓存中间件
-const { swrCache, cacheUpdate, cacheCleanup, cacheStats } = require('./cache-middleware');
+}))
 
-// 启动缓存清理
-cacheCleanup();
-// 缓存中间件
-const cacheMiddleware = (duration) => {
-    return (req, res, next) => {
-        res.set('Cache-Control', `public, max-age=${duration}`);
-        next();
-    };
-};
 // 引入自定义静态文件中间件
 const { createStaticFileMiddleware } = require('./static-file-middleware');
 
-// 静态文件缓存策略
-app.use('/uploads', cacheMiddleware(86400), createStaticFileMiddleware('uploads')); // 1天缓存，使用自定义中间件
-app.use('/front-end/images', cacheMiddleware(604800), express.static(path.join(__dirname, 'front-end/images'))); // 7天缓存
-app.use('/images', cacheMiddleware(604800), express.static(path.join(__dirname, 'front-end/images'))); // 7天缓存 - 添加/images路径映射
-app.use('/front-end/css', cacheMiddleware(604800), express.static(path.join(__dirname, 'front-end/css'))); // 7天缓存
-app.use('/css', cacheMiddleware(604800), express.static(path.join(__dirname, 'front-end/css'))); // 7天缓存 - 添加/css路径映射
-app.use('/front-end/js', cacheMiddleware(604800), express.static(path.join(__dirname, 'front-end/js'))); // 7天缓存
-app.use('/js', cacheMiddleware(604800), express.static(path.join(__dirname, 'front-end/js'))); // 7天缓存 - 添加/js路径映射
-app.use('/http.js', cacheMiddleware(604800), express.static(path.join(__dirname, 'front-end/http.js'))); // 7天缓存 - 添加/http.js路径映射
+// 引入简化的图片中间件
+const { 
+    createSimpleImageMiddleware, 
+    createImageStatusMiddleware, 
+    createImageErrorMiddleware 
+} = require('./simple-image-middleware');
 
-//使用cors做跨域申请
+// 引入图片优化中间件
+const ImageOptimizationMiddleware = require('./image-optimization-middleware');
+const imageOptimizer = new ImageOptimizationMiddleware();
+
+// 引入优化的缓存中间件
+const { createAPICache, createStaticCache, createUserCache } = require('./cache-middleware-optimized');
+
+// 简化的静态文件服务配置 - 确保图片正常显示
+// 1. 图片服务中间件（优先处理所有图片请求）
+app.use(createSimpleImageMiddleware());
+
+// 2. 上传文件服务
+app.use('/uploads', createStaticCache(24 * 60 * 60 * 1000), createStaticFileMiddleware('uploads'));
+
+// 3. 前端静态文件服务（包括图片、CSS、JS等）
+app.use('/front-end', express.static(path.join(__dirname, 'front-end')));
+
+// 4. 根目录静态文件服务（兜底）
+app.use('/', express.static(path.join(__dirname)));
+
+// 5. 图片路径别名（支持两种路径格式）
+app.use('/images', express.static(path.join(__dirname, 'front-end/images')));
+
+// 暂时禁用所有可能阻塞的中间件
+// app.use(imageOptimizer.createPreloadMiddleware());
+// app.use(imageOptimizer.createLazyLoadMiddleware());
+
+// 使用cors做跨域申请
 app.use(cors({
     origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
     credentials: true
 }))
 
-//使用bodyparser中间件
+// 使用bodyparser中间件
 app.use(bodyParser.urlencoded({extended:true}))
 app.use(bodyParser.json())
 
-//passport初始化
+// passport初始化
 app.use(passport.initialize());
 require('./config/passport')(passport)
 
-// API路由（移除缓存以确保实时性）
-// 应用SWR缓存中间件到只读API
-app.use('/api', swrCache());
-app.use('/api', cacheUpdate());
-app.use('/api/user', user)
-app.use('/api/posts', posts)
-app.use('/api/personal', personal)
-app.use('/api/accounts', accounts)
-app.use('/api/message', message)
-app.use('/api', cacheStats())
+// API路由 - 添加缓存优化
+app.use('/api/user', createAPICache(2 * 60 * 1000), user)        // 2分钟缓存
+app.use('/api/posts', createAPICache(1 * 60 * 1000), posts)      // 1分钟缓存
+app.use('/api/personal', createAPICache(2 * 60 * 1000), personal) // 2分钟缓存
+app.use('/api/accounts', createAPICache(5 * 60 * 1000), accounts) // 5分钟缓存
+app.use('/api/message', createAPICache(30 * 1000), message)      // 30秒缓存
 
 // 临时数据库修复路由
 app.get('/fix-database', (req, res) => {
@@ -268,16 +247,20 @@ app.get('/fix-database', (req, res) => {
 
 // 静态文件中间件（放在API路由之后）
 app.use(express.static(path.join(__dirname, 'front-end')));
+app.use(express.static(path.join(__dirname))); // 添加根目录静态文件服务
 
 // 注册页面路由（放在API路由之后）
 app.use('/', viewRouter);
 
-//set port
+// 添加图片错误处理中间件（放在所有路由之后）
+app.use(createImageErrorMiddleware());
+
+// 设置端口
 const port = process.env.PORT || 3000
 
 // 使用HTTP服务器启动（支持WebSocket）
-server.listen(port, () => {
+server.listen(port, '0.0.0.0', () => {
     console.log(`服务器运行在端口 ${port}`)
     console.log(`WebSocket 服务器已启动`)
+    console.log(`监听地址: 0.0.0.0:${port}`)
 })
-

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4KNWJP3BH3"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-4KNWJP3BH3');
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/accounts.css?v=1.0.5">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../http.js"></script>
+    
+</head>
+<body>
+   
+    <div class="header">
+        <div class="header-next">
+            <a class="index" href="/index">
+                <img loading="lazy" class="logo" src="//images/logo.png">
+                <img loading="lazy" class="title" src="//images/title.png">
+            </a>
+        </div>
+    </div>
+    
+        <div class="middle">
+            <img loading="lazy" class="profile" src=""></img>
+            <div class="info-block">
+            <p class="name">测试</p>
+            <p class="stats">关注: -- | 粉丝: --</p>
+            <button class="follow-btn" data-id="被关注用户的id">关注</button>
+        </div>
+        </div>
+        
+        <div class="content-container">
+        
+        <ul class="content">
+           
+        </ul>
+        </div>
+    
+
+    
+</body>
+</html>
+
+<script>
+    // 检查登录状态，如果未登录则跳转到登录页面
+    (function checkLoginStatus() {
+        const token = localStorage.getItem('eleToken');
+        const userData = localStorage.getItem('user_data');
+        
+        if (!token || !userData) {
+            console.log('未登录，跳转到登录页面');
+            window.location.href = '/login';
+            return;
+        }
+        
+        try {
+            JSON.parse(userData);
+        } catch (e) {
+            console.log('用户数据格式错误，跳转到登录页面');
+            window.location.href = '/login';
+            return;
+        }
+    })();
+
+const avatarGet = document.querySelector('.profile')
+const nameGet = document.querySelector('.name')
+const params = new URLSearchParams(window.location.search)
+const userId = params.get('id')
+
+
+
+console.log(userId)
+
+
+
+    
+
+    //获取发的帖子
+    const content = document.querySelector('.content')
+
+    let allData = []
+
+    async function getAllData(){
+        try{
+            console.log('正在请求用户数据，用户ID:', userId);
+            const res = await axios.get(`/api/accounts/${userId}/accounts`)
+            console.log('API Response:', res.data)
+
+            // 直接使用返回的数组数据
+            allData = res.data
+
+            // 设置头像和名字
+            if (allData.posts && allData.posts.length > 0) {
+                nameGet.innerHTML = allData.posts[0].name
+                avatarGet.src = allData.posts[0].avatar
+            } else {
+                // 如果用户没有帖子，需要单独获取用户信息
+                try {
+                    const userInfoRes = await axios.get(`/api/user/${userId}`);
+                    if (userInfoRes.data && userInfoRes.data.name) {
+                        nameGet.innerHTML = userInfoRes.data.name;
+                        avatarGet.src = userInfoRes.data.avatar || '/front-end//images/default_avatar.jpg';
+                    } else {
+                        nameGet.innerHTML = '未知用户';
+                        avatarGet.src = '/front-end//images/default_avatar.jpg';
+                    }
+                } catch (error) {
+                    console.error('获取用户信息失败:', error);
+                    nameGet.innerHTML = '未知用户';
+                    avatarGet.src = '/front-end//images/default_avatar.jpg';
+                }
+            }
+
+            // 设置关注数和粉丝数
+            const statsGet = document.querySelector('.stats')
+            statsGet.innerHTML = `关注: ${res.data.following} | 粉丝: ${res.data.followers}`
+
+            // 判断是否已关注 - 从数据库获取最新状态
+            const userD = localStorage.getItem('user_data');
+            const user_data = JSON.parse(userD);
+            
+            // 检查当前用户是否已关注目标用户
+            try {
+                const checkFollowRes = await axios.get(`/api/accounts/check-follow?follower_id=${user_data.id_user}&following_id=${userId}`);
+                const isFollowing = checkFollowRes.data.isFollowing;
+                
+                const followBtn = document.querySelector('.follow-btn');
+                if (isFollowing) {
+                    followBtn.innerText = '已关注';
+                    followBtn.classList.add('active');
+                } else {
+                    followBtn.innerText = '关注';
+                    followBtn.classList.remove('active');
+                }
+            } catch (error) {
+                console.error('检查关注状态失败:', error);
+                // 如果API调用失败，使用localStorage作为备选方案
+                const followingStr = user_data.following || '';
+                const followingArr = followingStr ? followingStr.split(',') : [];
+                const isFollowing = followingArr.includes(userId);
+                
+                const followBtn = document.querySelector('.follow-btn');
+                if (isFollowing) {
+                    followBtn.innerText = '已关注';
+                    followBtn.classList.add('active');
+                } else {
+                    followBtn.innerText = '关注';
+                    followBtn.classList.remove('active');
+                }
+            }
+
+            return allData;   
+        }catch(error){
+            console.error('获取用户数据失败:', error);
+            console.error('错误详情:', error.response?.data);
+            console.error('错误状态:', error.response?.status);
+            return[]
+        }
+    }
+    getAllData().then((allTable)=>{
+        console.log(allTable)
+
+    })
+
+    async function getAccounts() {
+        console.log('开始获取accounts数据');
+        const allData = await getAllData();
+        const post_Datas = allData.posts || []; // 只取posts数组
+
+        console.log('获取到的帖子数据:', post_Datas);
+
+        if (post_Datas.length === 0) {
+            content.innerHTML = `
+                <div style="text-align: center; padding: 50px 20px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">📝</div>
+                    <div style="font-size: 18px; margin-bottom: 10px;">还没有发布任何内容</div>
+                    <div style="font-size: 14px;">这个用户还没有发布过帖子哦</div>
+                </div>
+            `
+            return
+        }
+
+        content.innerHTML = '' // 清空现有内容
+
+        post_Datas.forEach(async (post) => {
+            console.log('正在渲染帖子:', post);
+            const formatted = new Date(post.time).toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            })
+
+            // 获取用户的关注数和粉丝数
+            let userFollowing = 0;
+            let userFollowers = 0;
+            try {
+                const userRes = await axios.get(`/api/accounts/${post.id_user}/accounts`);
+                userFollowing = userRes.data.following || 0;
+                userFollowers = userRes.data.followers || 0;
+            } catch (error) {
+                console.error('获取用户关注数据失败:', error);
+            }
+
+            // 处理图片显示 - 和personal页面保持一致
+            let imagesArr = [];
+            try {
+                imagesArr = post.images ? JSON.parse(post.images) : [];
+            } catch(error) {
+                imagesArr = [];
+            }
+            let picturesHtml = '';
+            if (imagesArr.length > 0) {
+                picturesHtml = `<div class="pictures">` +
+                    imagesArr.map(img => `<img src="${img}" class="post-image" loading="lazy">`).join('') +
+                    `</div>`;
+            }
+
+            console.log('渲染帖子HTML:', picturesHtml);
+            const li = document.createElement('li')
+            li.innerHTML = `
+                <div class="mulu-top" style="position:relative;">
+                    <div class="mulu" style="cursor: pointer;" onclick="window.location.href='/post-detail/${post.id}'">
+                        <image class="avatar" src=${post.avatar}></image>
+                        <div class="list">
+                            <div class="divide_row">
+                                <a href="javascript:;" class="uname" data-userid="${post.id_user}" onclick="event.stopPropagation()">${post.name}</a>
+                                <div class="information">
+                                    <div class="divide">
+                                        <image class="touxiang" src=${post.avatar}></image>
+                                        <p class="name">${post.name}</p>
+                                    </div>
+                                    <div class="people">
+                                        <p>关注: ${userFollowing}</p>
+                                        <p>粉丝: ${userFollowers}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="sentences">${post.content}</p>
+                            ${picturesHtml}
+                            <div class="last">
+                                <p class="time">${formatted}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `
+            console.log('添加到DOM:', li);
+            content.prepend(li)
+        })
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOM加载完成，开始初始化accounts页面');
+        getAccounts();
+        
+        // 添加用户名悬停事件处理
+        document.addEventListener('mouseover', function(e) {
+            if (e.target.classList.contains('uname')) {
+                const information = e.target.nextElementSibling;
+                if (information && information.classList.contains('information')) {
+                    information.classList.add('active');
+                }
+            }
+        });
+
+        document.addEventListener('mouseout', function(e) {
+            if (e.target.classList.contains('uname')) {
+                const information = e.target.nextElementSibling;
+                if (information && information.classList.contains('information')) {
+                    information.classList.remove('active');
+                }
+            }
+        });
+
+
+
+        // 处理点赞、收藏、评论按钮点击事件
+        document.addEventListener('click', async function(e) {
+            const target = e.target;
+            const postId = parseInt(target.dataset.id, 10);
+
+            // 点赞按钮
+            if (target.classList.contains('like') || target.closest('.like')) {
+                e.stopPropagation();
+                if (!localStorage.getItem('eleToken')) {
+                    alert('请先登录');
+                    return;
+                }
+
+                const userData = JSON.parse(localStorage.getItem('user_data'));
+                if (!userData || !userData.id_user) {
+                    console.error('用户数据不完整');
+                    alert('用户数据不完整，请重新登录');
+                    return;
+                }
+
+                try {
+                    const res = await axios.post('/api/posts/addLike', {
+                        userid_like: userData.id_user,
+                        id_from_post: postId
+                    });
+
+                    if (res.data.success) {
+                        const likeBtn = target.classList.contains('like') ? target : target.closest('.like');
+                        const likeCount = likeBtn.querySelector('.like-count');
+                        likeBtn.classList.toggle('active');
+                        const currentCount = parseInt(likeCount.textContent);
+                        likeCount.textContent = likeBtn.classList.contains('active') ? currentCount + 1 : currentCount - 1;
+                    } else {
+                        alert(res.data.message);
+                    }
+                } catch (error) {
+                    console.error('点赞操作失败:', error);
+                    alert('操作失败，请重试');
+                }
+                return;
+            }
+
+            // 收藏按钮
+            if (target.classList.contains('collect') || target.closest('.collect')) {
+                e.stopPropagation();
+                if (!localStorage.getItem('eleToken')) {
+                    alert('请先登录');
+                    return;
+                }
+
+                const userData = JSON.parse(localStorage.getItem('user_data'));
+                if (!userData || !userData.id_user) {
+                    console.error('用户数据不完整');
+                    alert('用户数据不完整，请重新登录');
+                    return;
+                }
+
+                try {
+                    const res = await axios.post('/api/posts/addCollect', {
+                        userid_collect: userData.id_user,
+                        id_from_post: postId
+                    });
+
+                    if (res.data.success) {
+                        const collectBtn = target.classList.contains('collect') ? target : target.closest('.collect');
+                        collectBtn.classList.toggle('active');
+                    } else {
+                        alert(res.data.message);
+                    }
+                } catch (error) {
+                    console.error('收藏操作失败:', error);
+                    alert('操作失败，请重试');
+                }
+                return;
+            }
+
+            // 评论按钮
+            if (target.classList.contains('say') || target.closest('.say')) {
+                e.stopPropagation();
+                const muluTop = target.closest('.mulu-top');
+                if (muluTop) {
+                    const cmt = muluTop.querySelector(`.comments[data-id="${postId}"]`);
+                    if (cmt) {
+                        cmt.classList.toggle('hidden');
+                        
+                        // 如果评论区域显示，则加载评论
+                        if (!cmt.classList.contains('hidden')) {
+                            try {
+                                const res = await axios.get(`/api/posts/${postId}/comments`);
+                                const comments = res.data;
+                                const otherComments = cmt.querySelector('.otherComments');
+                                
+                                if (comments.length === 0) {
+                                    otherComments.innerHTML = '<div class="empty-comment">抢个沙发吧</div>';
+                                } else {
+                                    otherComments.innerHTML = comments.map(comment => `
+                                        <div class="xijie" data-idcomments="${comment.idcomments}" data-userid="${comment.id_user}">
+                                            <image class="avatar1" src=${comment.avatar}></image>
+                                            <div class="exceptA">
+                                                <div class='author-container'>
+                                                    <a href="javascript:;" class="name" data-userid="${comment.id_user}">${comment.name}</a>
+                                                </div>
+                                                <div class="information"></div>
+                                                <p class="words">${comment.content}</p>
+                                                <div class="timesLike">
+                                                    <p class="ctime">${comment.time}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('');
+                                }
+                            } catch (error) {
+                                console.error('加载评论失败:', error);
+                            }
+                        }
+                    }
+                }
+                return;
+            }
+
+            // 用户页面跳转
+            if (target.classList.contains('uname')) {
+                const userId = target.dataset.userid;
+                // 判断是否是当前登录用户
+                if (userData && userId == userData.id_user) {
+                    window.location.href = '/personal';
+                } else {
+                    window.location.href = `/accounts?id=${userId}`;
+                }
+                return;
+            }
+
+            // 如果点击的是帖子容器，跳转到详情页（排除评论区）
+            const muluTop = target.closest('.mulu-top');
+            if (muluTop) {
+                // 检查是否点击的是评论区相关元素
+                const isCommentArea = target.closest('.comments') || 
+                                    target.closest('.inputComment') || 
+                                    target.closest('.otherComments') ||
+                                    target.closest('.xijie') ||
+                                    target.closest('.reply-container') ||
+                                    target.closest('.submitComment') ||
+                                    target.closest('textarea') ||
+                                    target.closest('.delete-comment-btn') ||
+                                    target.closest('.reply-btn') ||
+                                    target.closest('.name') ||
+                                    target.closest('.author-container');
+                
+                if (!isCommentArea) {
+                    const postId = muluTop.querySelector('.like').dataset.id;
+                    window.location.href = `/post-detail/${postId}`;
+                }
+            }
+        });
+    });
+
+    const followBtn = document.querySelector('.follow-btn');
+    const userD = localStorage.getItem('user_data');
+    const user_data = JSON.parse(userD);
+    const follower_id = user_data.id_user; // 当前登录用户id
+    const following_id = userId;           // 被关注用户id（就是url参数）
+
+    followBtn.addEventListener('click', async () => {
+        if (followBtn.classList.contains('active')) {
+            // 已关注，点击后弹出确认弹窗
+            if (confirm('确定要取关该用户？')) {
+                try {
+                    const res = await axios.post('/api/accounts/unfollow', {
+                        follower_id,
+                        following_id
+                    });
+                    if (res.data.success) {
+                        alert('已取消关注');
+                        followBtn.innerText = '关注';
+                        followBtn.classList.remove('active');
+                        // 更新localStorage
+                        let followingArr = user_data.following ? user_data.following.split(',') : [];
+                        followingArr = followingArr.filter(id => id !== following_id);
+                        user_data.following = followingArr.join(',');
+                        localStorage.setItem('user_data', JSON.stringify(user_data));
+                    } else {
+                        alert(res.data.message || '取消关注失败');
+                    }
+                } catch (err) {
+                    alert('取消关注失败');
+                    console.error(err);
+                }
+            }
+        } else {
+            // 未关注，点击后关注
+            try {
+                const res = await axios.post('/api/accounts/follow', {
+                    follower_id,
+                    following_id
+                });
+                if (res.data.success) {
+                    alert('关注成功！');
+                    followBtn.innerText = '已关注';
+                    followBtn.classList.add('active');
+                    // 更新localStorage
+                    let followingArr = user_data.following ? user_data.following.split(',') : [];
+                    if (!followingArr.includes(following_id)) {
+                        followingArr.push(following_id);
+                        user_data.following = followingArr.join(',');
+                        localStorage.setItem('user_data', JSON.stringify(user_data));
+                    }
+                } else {
+                    alert(res.data.message || '关注失败');
+                }
+            } catch (err) {
+                alert('关注失败');
+                console.error(err);
+            }
+        }
+    });
+
+
+
+</script>
